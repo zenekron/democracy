@@ -1,22 +1,24 @@
 #[macro_use]
 extern crate log;
 
-use std::env;
-
 use handler::Handler;
+use sea_orm::Database;
 use serenity::{prelude::GatewayIntents, Client};
+use settings::Settings;
 
 mod command;
 mod error;
 mod handler;
+mod settings;
 
 #[tokio::main]
 async fn main() -> Result<(), crate::error::Error> {
     tracing_subscriber::fmt::init();
 
-    let token = env::var("DISCORD_TOKEN").expect("env variable `DISCORD_TOKEN` not found");
+    let config = Settings::try_load()?;
+    let _db = Database::connect(config.database.url).await?;
 
-    let mut client = Client::builder(token, GatewayIntents::empty())
+    let mut client = Client::builder(config.discord.token, GatewayIntents::empty())
         .event_handler(Handler)
         .await?;
 

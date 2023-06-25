@@ -12,6 +12,18 @@ pub enum Error {
     MissingCommandOption(String, String),
 
     //
+    // config
+    //
+    #[error(transparent)]
+    ConfigError(#[from] config::ConfigError),
+
+    //
+    // seaorm
+    //
+    #[error(transparent)]
+    SeaOrmError(#[from] sea_orm::error::DbErr),
+
+    //
     // serenity
     //
     #[error(transparent)]

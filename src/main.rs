@@ -7,6 +7,7 @@ use serenity::{prelude::GatewayIntents, Client};
 use settings::Settings;
 
 mod command;
+mod entity;
 mod error;
 mod handler;
 mod settings;

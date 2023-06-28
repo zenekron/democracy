@@ -1,3 +1,4 @@
+use sea_orm::DatabaseConnection;
 use serenity::{
     async_trait,
     model::prelude::{interaction::Interaction, Ready},
@@ -6,7 +7,9 @@ use serenity::{
 
 use crate::command::Command;
 
-pub struct Handler;
+pub struct Handler {
+    pub database: DatabaseConnection,
+}
 
 #[async_trait]
 impl EventHandler for Handler {
@@ -27,7 +30,7 @@ impl EventHandler for Handler {
                     }
                 };
 
-                match command.execute(ctx, command_interaction).await {
+                match command.execute(self, ctx, command_interaction).await {
                     Ok(val) => val,
                     Err(err) => {
                         error!("Command execution error: {:?}", err);

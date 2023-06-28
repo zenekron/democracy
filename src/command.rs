@@ -1,5 +1,7 @@
 use std::str::FromStr;
 
+use chrono::Utc;
+use sea_orm::{ActiveValue, EntityTrait};
 use serenity::{
     model::prelude::{
         command::{Command as SerenityCommand, CommandOptionType},
@@ -11,7 +13,7 @@ use serenity::{
     prelude::Context,
 };
 
-use crate::error::Error;
+use crate::{entity::invite_poll, error::Error, handler::Handler};
 
 #[derive(Debug)]
 pub enum Command {
@@ -43,6 +45,7 @@ impl Command {
 
     pub async fn execute(
         &self,
+        handler: &Handler,
         ctx: Context,
         command: &ApplicationCommandInteraction,
     ) -> Result<(), Error> {
@@ -63,6 +66,21 @@ impl Command {
             Command::Invite { user_id } => {
                 let user = user_id.to_user(&ctx.http).await?;
                 debug!("user: {:?}", user);
+
+                let guild_id = command
+                    .guild_id
+                    .ok_or_else(|| Error::GuildCommandNotInGuild("invite".to_string()))?;
+
+                let invite = invite_poll::ActiveModel {
+                    id: ActiveValue::NotSet,
+                    guild_id: ActiveValue::Set(guild_id.0 as i64),
+                    user_id: ActiveValue::Set(user_id.0 as i64),
+                    created_at: ActiveValue::Set(Utc::now().naive_utc()),
+                    updated_at: ActiveValue::Set(Utc::now().naive_utc()),
+                };
+                invite_poll::Entity::insert(invite)
+                    .exec(&handler.database)
+                    .await?;
 
                 command
                     .create_interaction_response(&ctx.http, |resp| {

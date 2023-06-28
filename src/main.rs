@@ -18,7 +18,7 @@ async fn main() -> Result<(), crate::error::Error> {
 
     let config = Settings::try_load()?;
 
-    let _db = {
+    let database = {
         let mut opts = ConnectOptions::new(config.database.url);
         if let Some(schema) = config.database.schema {
             opts.set_schema_search_path(schema);
@@ -28,7 +28,7 @@ async fn main() -> Result<(), crate::error::Error> {
     };
 
     let mut client = Client::builder(config.discord.token, GatewayIntents::empty())
-        .event_handler(Handler)
+        .event_handler(Handler { database })
         .await?;
 
     client.start().await?;

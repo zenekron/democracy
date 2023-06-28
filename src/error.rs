@@ -11,6 +11,9 @@ pub enum Error {
     #[error("missing option `{1}` for command `{0}`")]
     MissingCommandOption(String, String),
 
+    #[error("command `{0}` can only be issued inside a guild")]
+    GuildCommandNotInGuild(String),
+
     //
     // config
     //

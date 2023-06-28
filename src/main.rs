@@ -2,7 +2,7 @@
 extern crate log;
 
 use handler::Handler;
-use sea_orm::Database;
+use sea_orm::{ConnectOptions, Database};
 use serenity::{prelude::GatewayIntents, Client};
 use settings::Settings;
 
@@ -16,7 +16,15 @@ async fn main() -> Result<(), crate::error::Error> {
     tracing_subscriber::fmt::init();
 
     let config = Settings::try_load()?;
-    let _db = Database::connect(config.database.url).await?;
+
+    let _db = {
+        let mut opts = ConnectOptions::new(config.database.url);
+        if let Some(schema) = config.database.schema {
+            opts.set_schema_search_path(schema);
+        }
+
+        Database::connect(opts).await?
+    };
 
     let mut client = Client::builder(config.discord.token, GatewayIntents::empty())
         .event_handler(Handler)

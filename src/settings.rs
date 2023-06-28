@@ -21,6 +21,7 @@ impl Settings {
 #[derive(Debug, Deserialize)]
 pub struct Database {
     pub url: String,
+    pub schema: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]

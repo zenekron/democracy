@@ -1,5 +1,6 @@
 use std::str::FromStr;
 
+use base64::Engine;
 use chrono::Utc;
 use sea_orm::{ActiveValue, EntityTrait};
 use serenity::{
@@ -15,6 +16,8 @@ use serenity::{
 use uuid::Uuid;
 
 use crate::{entity::invite_poll, error::Error, handler::Handler};
+
+static BASE64: base64::engine::GeneralPurpose = base64::engine::general_purpose::STANDARD_NO_PAD;
 
 #[derive(Debug)]
 pub enum Command {
@@ -79,8 +82,8 @@ impl Command {
                     created_at: ActiveValue::Set(Utc::now().naive_utc()),
                     updated_at: ActiveValue::Set(Utc::now().naive_utc()),
                 };
-                invite_poll::Entity::insert(invite)
-                    .exec(&handler.database)
+                let invite = invite_poll::Entity::insert(invite)
+                    .exec_with_returning(&handler.database)
                     .await?;
 
                 command
@@ -92,6 +95,7 @@ impl Command {
                                         .color(colors::PASTEL_GREEN)
                                         .title("Invite Poll")
                                         .thumbnail(user.face())
+                                        .field("Poll Id", BASE64.encode(invite.id), true)
                                         .field("User", &user.name, true)
                                 })
                                 .components(|component| {

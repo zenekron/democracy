@@ -1,6 +1,6 @@
 .env
 .envrc
-/src/entity
+/democracy/src/entity
 
 # rust
 /target

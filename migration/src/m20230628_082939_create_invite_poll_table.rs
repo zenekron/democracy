@@ -10,12 +10,7 @@ impl MigrationTrait for Migration {
             .create_table(
                 Table::create()
                     .table(InvitePoll::Table)
-                    .col(
-                        ColumnDef::new(InvitePoll::Id)
-                            .big_integer()
-                            .auto_increment()
-                            .primary_key(),
-                    )
+                    .col(ColumnDef::new(InvitePoll::Id).uuid().primary_key())
                     .col(
                         ColumnDef::new(InvitePoll::GuildId)
                             .big_unsigned()

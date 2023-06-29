@@ -12,6 +12,7 @@ use serenity::{
     },
     prelude::Context,
 };
+use uuid::Uuid;
 
 use crate::{entity::invite_poll, error::Error, handler::Handler};
 
@@ -72,7 +73,7 @@ impl Command {
                     .ok_or_else(|| Error::GuildCommandNotInGuild("invite".to_string()))?;
 
                 let invite = invite_poll::ActiveModel {
-                    id: ActiveValue::NotSet,
+                    id: ActiveValue::Set(Uuid::new_v4()),
                     guild_id: ActiveValue::Set(guild_id.0 as i64),
                     user_id: ActiveValue::Set(user_id.0 as i64),
                     created_at: ActiveValue::Set(Utc::now().naive_utc()),

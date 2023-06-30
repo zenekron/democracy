@@ -6,7 +6,7 @@ use uuid::Uuid;
 use crate::error::Error;
 
 #[derive(Debug, sqlx::FromRow)]
-pub struct Invite {
+pub struct InvitePoll {
     pub id: Uuid,
     guild_id: i64,
     user_id: i64,
@@ -14,12 +14,12 @@ pub struct Invite {
     pub updated_at: DateTime<Utc>,
 }
 
-impl Invite {
+impl InvitePoll {
     pub async fn create(pool: &PgPool, guild_id: GuildId, user_id: UserId) -> Result<Self, Error> {
         let res = sqlx::query_as!(
-            Invite,
+            Self,
             r#"
-                INSERT INTO invite(guild_id, user_id)
+                INSERT INTO invite_poll(guild_id, user_id)
                 VALUES ($1, $2)
                 RETURNING id, guild_id AS "guild_id: _", user_id AS "user_id: _", created_at, updated_at;
             "#,
@@ -31,7 +31,7 @@ impl Invite {
     }
 }
 
-impl Invite {
+impl InvitePoll {
     pub fn guild_id(&self) -> GuildId {
         GuildId(self.guild_id as u64)
     }

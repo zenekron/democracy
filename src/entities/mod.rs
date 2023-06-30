@@ -1,3 +1,3 @@
-mod invite;
+mod invite_poll;
 
-pub use invite::Invite;
+pub use invite_poll::InvitePoll;

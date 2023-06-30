@@ -12,7 +12,7 @@ use serenity::{
     prelude::Context,
 };
 
-use crate::{entities::Invite, error::Error, handler::Handler};
+use crate::{entities::InvitePoll, error::Error, handler::Handler};
 
 static BASE64: base64::engine::GeneralPurpose = base64::engine::general_purpose::STANDARD_NO_PAD;
 
@@ -72,7 +72,8 @@ impl Command {
                     .guild_id
                     .ok_or_else(|| Error::GuildCommandNotInGuild("invite".to_string()))?;
 
-                let invite = Invite::create(&handler.pool, guild_id, user_id.clone()).await?;
+                let invite_poll =
+                    InvitePoll::create(&handler.pool, guild_id, user_id.clone()).await?;
 
                 command
                     .create_interaction_response(&ctx.http, |resp| {
@@ -83,7 +84,7 @@ impl Command {
                                         .color(colors::PASTEL_GREEN)
                                         .title("Invite Poll")
                                         .thumbnail(user.face())
-                                        .field("Poll Id", BASE64.encode(invite.id), true)
+                                        .field("Poll Id", BASE64.encode(invite_poll.id), true)
                                         .field("User", &user.name, true)
                                 })
                                 .components(|component| {

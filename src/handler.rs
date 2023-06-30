@@ -1,14 +1,28 @@
 use serenity::{
     async_trait,
-    model::prelude::{interaction::Interaction, Ready},
+    model::{
+        application::interaction::application_command::ApplicationCommandInteraction,
+        prelude::{interaction::Interaction, Ready},
+    },
     prelude::{Context, EventHandler},
 };
 use sqlx::PgPool;
 
-use crate::command::Command;
+use crate::{command::Command, error::Error};
 
 pub struct Handler {
     pub pool: PgPool,
+}
+
+impl Handler {
+    async fn on_application_command_interaction(
+        &self,
+        ctx: Context,
+        interaction: &ApplicationCommandInteraction,
+    ) -> Result<(), Error> {
+        let command = Command::try_from(interaction)?;
+        command.execute(self, ctx, interaction).await
+    }
 }
 
 #[async_trait]
@@ -21,21 +35,13 @@ impl EventHandler for Handler {
         debug!("interaction: {:?}", interaction);
 
         match interaction {
-            Interaction::ApplicationCommand(ref command_interaction) => {
-                let command = match Command::try_from(command_interaction) {
-                    Ok(val) => val,
-                    Err(err) => {
-                        error!("Command parsing failure: {:?}", err);
-                        return;
-                    }
-                };
-
-                match command.execute(self, ctx, command_interaction).await {
-                    Ok(val) => val,
-                    Err(err) => {
-                        error!("Command execution error: {:?}", err);
-                        return;
-                    }
+            Interaction::ApplicationCommand(ref interaction) => {
+                match self
+                    .on_application_command_interaction(ctx, interaction)
+                    .await
+                {
+                    Ok(()) => {}
+                    Err(err) => error!("{0}: {0:?}", err),
                 }
             }
 

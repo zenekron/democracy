@@ -21,10 +21,13 @@ pub enum Error {
     ConfigError(#[from] config::ConfigError),
 
     //
-    // seaorm
+    // sqlx
     //
     #[error(transparent)]
-    SeaOrmError(#[from] sea_orm::error::DbErr),
+    DatabaseError(#[from] sqlx::Error),
+
+    #[error(transparent)]
+    MigrationError(#[from] sqlx::migrate::MigrateError),
 
     //
     // serenity

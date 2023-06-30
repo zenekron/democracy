@@ -1,14 +1,14 @@
-use sea_orm::DatabaseConnection;
 use serenity::{
     async_trait,
     model::prelude::{interaction::Interaction, Ready},
     prelude::{Context, EventHandler},
 };
+use sqlx::PgPool;
 
 use crate::command::Command;
 
 pub struct Handler {
-    pub database: DatabaseConnection,
+    pub pool: PgPool,
 }
 
 #[async_trait]

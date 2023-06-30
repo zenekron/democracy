@@ -2,12 +2,12 @@
 extern crate log;
 
 use handler::Handler;
-use sea_orm::{ConnectOptions, Database};
 use serenity::{prelude::GatewayIntents, Client};
 use settings::Settings;
+use sqlx::postgres::PgPoolOptions;
 
 mod command;
-mod entity;
+mod entities;
 mod error;
 mod handler;
 mod settings;
@@ -18,17 +18,12 @@ async fn main() -> Result<(), crate::error::Error> {
 
     let config = Settings::try_load()?;
 
-    let database = {
-        let mut opts = ConnectOptions::new(config.database.url);
-        if let Some(schema) = config.database.schema {
-            opts.set_schema_search_path(schema);
-        }
-
-        Database::connect(opts).await?
-    };
+    // connect to the database and apply migrations
+    let pool = PgPoolOptions::new().connect(&config.database.url).await?;
+    sqlx::migrate!().run(&pool).await?;
 
     let mut client = Client::builder(config.discord.token, GatewayIntents::empty())
-        .event_handler(Handler { database })
+        .event_handler(Handler { pool })
         .await?;
 
     client.start().await?;

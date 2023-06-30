@@ -1,8 +1,6 @@
 use std::str::FromStr;
 
 use base64::Engine;
-use chrono::Utc;
-use sea_orm::{ActiveValue, EntityTrait};
 use serenity::{
     model::prelude::{
         command::{Command as SerenityCommand, CommandOptionType},
@@ -13,9 +11,8 @@ use serenity::{
     },
     prelude::Context,
 };
-use uuid::Uuid;
 
-use crate::{entity::invite_poll, error::Error, handler::Handler};
+use crate::{entities::Invite, error::Error, handler::Handler};
 
 static BASE64: base64::engine::GeneralPurpose = base64::engine::general_purpose::STANDARD_NO_PAD;
 
@@ -75,16 +72,7 @@ impl Command {
                     .guild_id
                     .ok_or_else(|| Error::GuildCommandNotInGuild("invite".to_string()))?;
 
-                let invite = invite_poll::ActiveModel {
-                    id: ActiveValue::Set(Uuid::new_v4()),
-                    guild_id: ActiveValue::Set(guild_id.0 as i64),
-                    user_id: ActiveValue::Set(user_id.0 as i64),
-                    created_at: ActiveValue::Set(Utc::now().naive_utc()),
-                    updated_at: ActiveValue::Set(Utc::now().naive_utc()),
-                };
-                let invite = invite_poll::Entity::insert(invite)
-                    .exec_with_returning(&handler.database)
-                    .await?;
+                let invite = Invite::create(&handler.pool, guild_id, user_id.clone()).await?;
 
                 command
                     .create_interaction_response(&ctx.http, |resp| {

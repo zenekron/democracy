@@ -90,18 +90,18 @@ impl Command {
                                 .components(|component| {
                                     component.create_action_row(|row| {
                                         row.create_button(|btn| {
-                                            btn.custom_id("invite.vote.yes")
+                                            btn.custom_id("democracy.invite-poll-vote.yes")
                                                 .label("Yes")
                                                 .emoji(ReactionType::from('🟢'))
                                         })
                                         .create_button(|btn| {
-                                            btn.custom_id("invite.vote.maybe")
+                                            btn.custom_id("democracy.invite-poll-vote.maybe")
                                                 .label("Maybe")
                                                 .emoji(ReactionType::from('🟡'))
                                         })
                                         .create_button(
                                             |btn| {
-                                                btn.custom_id("invite.vote.no")
+                                                btn.custom_id("democracy.invite-poll-vote.no")
                                                     .label("No")
                                                     .emoji(ReactionType::from('🔴'))
                                             },

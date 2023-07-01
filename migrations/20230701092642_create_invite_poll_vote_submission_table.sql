@@ -37,6 +37,8 @@ CREATE FUNCTION invite_poll_update_counters() RETURNS trigger AS $BODY$
 			statement := statement || ', ' || col_name || ' = ' || col_name || ' - 1';
 		END IF;
 
+		statement := statement || ' WHERE id = ''' || NEW.invite_poll_id || '''';
+
 		RAISE NOTICE 'invite_poll_update_counters: %', statement;
 		EXECUTE statement;
 

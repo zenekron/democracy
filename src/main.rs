@@ -11,6 +11,7 @@ mod entities;
 mod error;
 mod handler;
 mod settings;
+mod util;
 
 #[tokio::main]
 async fn main() -> Result<(), crate::error::Error> {

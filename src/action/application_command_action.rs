@@ -3,7 +3,7 @@ use std::str::FromStr;
 use base64::Engine;
 use serenity::{
     model::prelude::{
-        command::{Command as SerenityCommand, CommandOptionType},
+        command::{Command, CommandOptionType},
         interaction::{
             application_command::ApplicationCommandInteraction, InteractionResponseType,
         },
@@ -12,18 +12,18 @@ use serenity::{
     prelude::Context,
 };
 
-use crate::{entities::InvitePoll, error::Error, handler::Handler};
+use crate::{entities::InvitePoll, error::Error, handler::Handler, util::colors};
 
 static BASE64: base64::engine::GeneralPurpose = base64::engine::general_purpose::STANDARD_NO_PAD;
 
 #[derive(Debug)]
-pub enum Action {
+pub enum ApplicationCommandAction {
     CreateInvitePoll { guild_id: GuildId, user_id: UserId },
 }
 
-impl Action {
+impl ApplicationCommandAction {
     pub async fn register(ctx: Context) -> Result<(), Error> {
-        let _invite = SerenityCommand::create_global_application_command(&ctx.http, |cmd| {
+        let _invite = Command::create_global_application_command(&ctx.http, |cmd| {
             cmd.name("invite")
                 .description("Creates a petition to invite a new user")
                 .create_option(|opt| {
@@ -42,12 +42,12 @@ impl Action {
         &self,
         handler: &Handler,
         ctx: Context,
-        command: &ApplicationCommandInteraction,
+        interaction: &ApplicationCommandInteraction,
     ) -> Result<(), Error> {
         debug!("{:?}", self);
 
         match self {
-            Action::CreateInvitePoll { guild_id, user_id } => {
+            ApplicationCommandAction::CreateInvitePoll { guild_id, user_id } => {
                 let invite_poll =
                     InvitePoll::create(&handler.pool, guild_id.to_owned(), user_id.to_owned())
                         .await?;
@@ -55,7 +55,7 @@ impl Action {
                 // generate response
                 let user = user_id.to_user(&ctx.http).await?;
 
-                command
+                interaction
                     .create_interaction_response(&ctx.http, |resp| {
                         resp.kind(InteractionResponseType::ChannelMessageWithSource)
                             .interaction_response_data(|data| {
@@ -98,7 +98,7 @@ impl Action {
     }
 }
 
-impl TryFrom<&ApplicationCommandInteraction> for Action {
+impl TryFrom<&ApplicationCommandInteraction> for ApplicationCommandAction {
     type Error = Error;
 
     fn try_from(interaction: &ApplicationCommandInteraction) -> Result<Self, Self::Error> {
@@ -142,11 +142,4 @@ impl TryFrom<&ApplicationCommandInteraction> for Action {
             other => Err(Error::UnknownCommand(other.to_owned())),
         }
     }
-}
-
-mod colors {
-    use serenity::utils::Color;
-
-    // https://www.colorhexa.com/77dd77
-    pub static PASTEL_GREEN: Color = Color::new(0x77dd77);
 }

@@ -26,7 +26,7 @@ pub enum MessageComponentAction {
 impl MessageComponentAction {
     pub async fn execute(
         &self,
-        _handler: &Handler,
+        handler: &Handler,
         ctx: Context,
         interaction: &MessageComponentInteraction,
     ) -> Result<(), Error> {
@@ -34,10 +34,15 @@ impl MessageComponentAction {
 
         match self {
             MessageComponentAction::SubmitInvitePollVote {
-                invite_poll_id: _,
+                invite_poll_id,
                 user_id: _,
                 vote: _,
             } => {
+                let invite_poll = InvitePoll::find_by_id(&handler.pool, invite_poll_id)
+                    .await?
+                    .ok_or_else(|| Error::InvitePollNotFound(invite_poll_id.to_owned()))?;
+                info!("{:?}", invite_poll);
+
                 interaction
                     .create_interaction_response(&ctx.http, |resp| {
                         resp.kind(InteractionResponseType::UpdateMessage)

@@ -1,4 +1,5 @@
 use serenity::model::prelude::UserIdParseError;
+use uuid::Uuid;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -13,6 +14,9 @@ pub enum Error {
 
     #[error("command `{0}` can only be issued inside a guild")]
     GuildCommandNotInGuild(String),
+
+    #[error("could not find an invite poll with id `{0}`")]
+    InvitePollNotFound(Uuid),
 
     #[error("could not extract a valid poll id")]
     InvitePollIdNotFound,

@@ -33,7 +33,7 @@ impl InvitePoll {
         Ok(res)
     }
 
-    pub async fn find_by_id(pool: &PgPool, id: Uuid) -> Result<Option<Self>, Error> {
+    pub async fn find_by_id(pool: &PgPool, id: &Uuid) -> Result<Option<Self>, Error> {
         let res = sqlx::query_as!(
             Self,
             r#"

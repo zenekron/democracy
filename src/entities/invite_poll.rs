@@ -30,6 +30,20 @@ impl InvitePoll {
         Ok(res)
     }
 
+    pub async fn find_by_id(pool: &PgPool, id: Uuid) -> Result<Option<Self>, Error> {
+        let res = sqlx::query_as!(
+            Self,
+            r#"
+                SELECT id, guild_id AS "guild_id: _", user_id AS "user_id: _", created_at, updated_at
+                FROM invite_poll
+                WHERE id = $1
+            "#,
+            id
+        ).fetch_optional(pool).await?;
+
+        Ok(res)
+    }
+
     pub fn guild_id(&self) -> GuildId {
         GuildId(self.guild_id as u64)
     }

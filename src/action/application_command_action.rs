@@ -11,7 +11,12 @@ use serenity::{
     prelude::Context,
 };
 
-use crate::{entities::InvitePoll, error::Error, handler::Handler, util::colors};
+use crate::{
+    entities::InvitePoll,
+    error::Error,
+    handler::Handler,
+    util::{colors, emojis},
+};
 
 #[derive(Debug)]
 pub enum ApplicationCommandAction {
@@ -63,24 +68,31 @@ impl ApplicationCommandAction {
                                         .thumbnail(user.face())
                                         .field("Poll Id", invite_poll.encoded_id(), true)
                                         .field("User", &user.name, true)
+                                        .field("Results", invite_poll, false)
                                 })
                                 .components(|component| {
                                     component.create_action_row(|row| {
                                         row.create_button(|btn| {
                                             btn.custom_id("democracy.invite-poll-vote.yes")
                                                 .label("Yes")
-                                                .emoji(ReactionType::from('🟢'))
+                                                .emoji(ReactionType::from(
+                                                    emojis::LARGE_GREEN_CIRCLE,
+                                                ))
                                         })
                                         .create_button(|btn| {
                                             btn.custom_id("democracy.invite-poll-vote.maybe")
                                                 .label("Maybe")
-                                                .emoji(ReactionType::from('🟡'))
+                                                .emoji(ReactionType::from(
+                                                    emojis::LARGE_YELLOW_CIRCLE,
+                                                ))
                                         })
                                         .create_button(
                                             |btn| {
                                                 btn.custom_id("democracy.invite-poll-vote.no")
                                                     .label("No")
-                                                    .emoji(ReactionType::from('🔴'))
+                                                    .emoji(ReactionType::from(
+                                                        emojis::LARGE_RED_CIRCLE,
+                                                    ))
                                             },
                                         )
                                     })

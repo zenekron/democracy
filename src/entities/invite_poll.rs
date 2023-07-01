@@ -1,10 +1,15 @@
+use std::fmt::Display;
+
 use base64::Engine;
 use chrono::{DateTime, Utc};
 use serenity::model::prelude::{GuildId, UserId};
 use sqlx::PgPool;
 use uuid::Uuid;
 
-use crate::error::Error;
+use crate::{
+    error::Error,
+    util::{emojis, ProgressBar},
+};
 
 use super::{invite_poll_vote_submission::InvitePollVoteSubmission, InvitePollVote};
 
@@ -82,5 +87,38 @@ impl InvitePoll {
         vote: InvitePollVote,
     ) -> Result<InvitePollVoteSubmission, Error> {
         InvitePollVoteSubmission::upsert(pool, self.id, user_id, vote).await
+    }
+}
+
+impl Display for InvitePoll {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let max = 2_f32;
+
+        writeln!(
+            f,
+            "{} {} [{} · {:.0}%]",
+            emojis::LARGE_GREEN_CIRCLE,
+            ProgressBar(self.yes_count as f32 / max),
+            self.yes_count,
+            self.yes_count as f32 / max * 100.0
+        )?;
+        writeln!(
+            f,
+            "{} {} [{} · {:.0}%]",
+            emojis::LARGE_YELLOW_CIRCLE,
+            ProgressBar(self.maybe_count as f32 / max),
+            self.maybe_count,
+            self.maybe_count as f32 / max * 100.0
+        )?;
+        writeln!(
+            f,
+            "{} {} [{} · {:.0}%]",
+            emojis::LARGE_RED_CIRCLE,
+            ProgressBar(self.no_count as f32 / max),
+            self.no_count,
+            self.no_count as f32 / max * 100.0
+        )?;
+
+        Ok(())
     }
 }

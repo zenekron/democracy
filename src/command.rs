@@ -3,9 +3,7 @@ use std::str::FromStr;
 use serenity::{
     model::prelude::{
         command::{Command as SerenityCommand, CommandOptionType},
-        interaction::{
-            application_command::ApplicationCommandInteraction, InteractionResponseType,
-        },
+        interaction::application_command::ApplicationCommandInteraction,
         UserId,
     },
     prelude::Context,
@@ -15,17 +13,11 @@ use crate::{entities::InvitePoll, error::Error, handler::Handler};
 
 #[derive(Debug)]
 pub enum Command {
-    Ping,
     Invite { user_id: UserId },
 }
 
 impl Command {
     pub async fn register(ctx: Context) -> Result<(), Error> {
-        let _ping = SerenityCommand::create_global_application_command(&ctx.http, |cmd| {
-            cmd.name("ping").description("Ping")
-        })
-        .await?;
-
         let _invite = SerenityCommand::create_global_application_command(&ctx.http, |cmd| {
             cmd.name("invite")
                 .description("Creates a petition to invite a new user")
@@ -50,17 +42,6 @@ impl Command {
         debug!("{:?}", self);
 
         match self {
-            Command::Ping => {
-                command
-                    .create_interaction_response(&ctx.http, |resp| {
-                        resp.kind(InteractionResponseType::ChannelMessageWithSource)
-                            .interaction_response_data(|data| data.title("Pong").content("pong"))
-                    })
-                    .await?;
-
-                Ok(())
-            }
-
             Command::Invite { user_id } => {
                 let guild_id = command
                     .guild_id
@@ -84,7 +65,6 @@ impl TryFrom<&ApplicationCommandInteraction> for Command {
 
     fn try_from(value: &ApplicationCommandInteraction) -> Result<Self, Self::Error> {
         match value.data.name.as_str() {
-            "ping" => Ok(Command::Ping),
             "invite" => {
                 let mut user_id: Option<UserId> = None;
 

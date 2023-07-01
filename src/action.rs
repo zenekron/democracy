@@ -18,7 +18,7 @@ static BASE64: base64::engine::GeneralPurpose = base64::engine::general_purpose:
 
 #[derive(Debug)]
 pub enum Action {
-    Invite { guild_id: GuildId, user_id: UserId },
+    CreateInvitePoll { guild_id: GuildId, user_id: UserId },
 }
 
 impl Action {
@@ -47,7 +47,7 @@ impl Action {
         debug!("{:?}", self);
 
         match self {
-            Action::Invite { guild_id, user_id } => {
+            Action::CreateInvitePoll { guild_id, user_id } => {
                 let invite_poll =
                     InvitePoll::create(&handler.pool, guild_id.to_owned(), user_id.to_owned())
                         .await?;
@@ -131,7 +131,7 @@ impl TryFrom<&ApplicationCommandInteraction> for Action {
                     .ok_or_else(|| Error::GuildCommandNotInGuild(interaction.data.name.clone()))?;
 
                 match user_id {
-                    Some(user_id) => Ok(Self::Invite { guild_id, user_id }),
+                    Some(user_id) => Ok(Self::CreateInvitePoll { guild_id, user_id }),
                     None => Err(Error::MissingCommandOption(
                         interaction.data.name.clone(),
                         "user_id".to_owned(),

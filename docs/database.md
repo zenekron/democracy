@@ -10,13 +10,13 @@ erDiagram
         DateTime updated_at
     }
 
-    INVITE_POLL_VOTE {
+    INVITE_POLL_VOTE_SUBMISSION {
         Uuid invite_poll_id PK, FK
         UserId user_id PK
-        InvitePollVoteValue value
+        InvitePollVote value
         DateTime created_at
         DateTime updated_at
     }
 
-    INVITE_POLL ||--o{ INVITE_POLL_VOTE : "invite_poll_id"
+    INVITE_POLL ||--o{ INVITE_POLL_VOTE_SUBMISSION : "invite_poll_id"
 ```

@@ -1,7 +1,3 @@
-# pub static PASTEL_RED: Color = Color::new(0xff6961);
-# const PROGRESSBAR_EMPTY_CHAR: char = '░';
-# const PROGRESSBAR_FULL_CHAR: char = '█';
-
 services:
   database:
     image: "postgres:15.3"

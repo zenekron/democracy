@@ -3,6 +3,7 @@ use std::str::FromStr;
 use serenity::{
     model::prelude::{
         command::{Command, CommandOptionType},
+        component::ButtonStyle,
         interaction::{
             application_command::ApplicationCommandInteraction, InteractionResponseType,
         },
@@ -75,24 +76,18 @@ impl ApplicationCommandAction {
                                         row.create_button(|btn| {
                                             btn.custom_id("democracy.invite-poll-vote.yes")
                                                 .label("Yes")
-                                                .emoji(ReactionType::from(
-                                                    emojis::LARGE_GREEN_CIRCLE,
-                                                ))
+                                                .style(ButtonStyle::Success)
                                         })
                                         .create_button(|btn| {
                                             btn.custom_id("democracy.invite-poll-vote.maybe")
                                                 .label("Maybe")
-                                                .emoji(ReactionType::from(
-                                                    emojis::LARGE_YELLOW_CIRCLE,
-                                                ))
+                                                .style(ButtonStyle::Primary)
                                         })
                                         .create_button(
                                             |btn| {
                                                 btn.custom_id("democracy.invite-poll-vote.no")
                                                     .label("No")
-                                                    .emoji(ReactionType::from(
-                                                        emojis::LARGE_RED_CIRCLE,
-                                                    ))
+                                                    .style(ButtonStyle::Danger)
                                             },
                                         )
                                     })

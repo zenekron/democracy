@@ -1,15 +1,20 @@
 use std::str::FromStr;
 
+use base64::Engine;
 use serenity::{
     model::prelude::{
         command::{Command as SerenityCommand, CommandOptionType},
-        interaction::application_command::ApplicationCommandInteraction,
-        GuildId, UserId,
+        interaction::{
+            application_command::ApplicationCommandInteraction, InteractionResponseType,
+        },
+        GuildId, ReactionType, UserId,
     },
     prelude::Context,
 };
 
 use crate::{entities::InvitePoll, error::Error, handler::Handler};
+
+static BASE64: base64::engine::GeneralPurpose = base64::engine::general_purpose::STANDARD_NO_PAD;
 
 #[derive(Debug)]
 pub enum Command {
@@ -47,8 +52,44 @@ impl Command {
                     InvitePoll::create(&handler.pool, guild_id.to_owned(), user_id.to_owned())
                         .await?;
 
-                invite_poll
-                    .create_interaction_response(&ctx, command)
+                // generate response
+                let user = user_id.to_user(&ctx.http).await?;
+
+                command
+                    .create_interaction_response(&ctx.http, |resp| {
+                        resp.kind(InteractionResponseType::ChannelMessageWithSource)
+                            .interaction_response_data(|data| {
+                                data.embed(|embed| {
+                                    embed
+                                        .color(colors::PASTEL_GREEN)
+                                        .title("Invite Poll")
+                                        .thumbnail(user.face())
+                                        .field("Poll Id", BASE64.encode(invite_poll.id), true)
+                                        .field("User", &user.name, true)
+                                })
+                                .components(|component| {
+                                    component.create_action_row(|row| {
+                                        row.create_button(|btn| {
+                                            btn.custom_id("democracy.invite-poll-vote.yes")
+                                                .label("Yes")
+                                                .emoji(ReactionType::from('🟢'))
+                                        })
+                                        .create_button(|btn| {
+                                            btn.custom_id("democracy.invite-poll-vote.maybe")
+                                                .label("Maybe")
+                                                .emoji(ReactionType::from('🟡'))
+                                        })
+                                        .create_button(
+                                            |btn| {
+                                                btn.custom_id("democracy.invite-poll-vote.no")
+                                                    .label("No")
+                                                    .emoji(ReactionType::from('🔴'))
+                                            },
+                                        )
+                                    })
+                                })
+                            })
+                    })
                     .await?;
 
                 Ok(())

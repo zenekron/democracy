@@ -30,8 +30,6 @@ impl MessageComponentAction {
         ctx: Context,
         interaction: &MessageComponentInteraction,
     ) -> Result<(), Error> {
-        debug!("{:?}", self);
-
         match self {
             MessageComponentAction::SubmitInvitePollVote {
                 invite_poll_id,

@@ -41,8 +41,6 @@ impl ApplicationCommandAction {
         ctx: Context,
         interaction: &ApplicationCommandInteraction,
     ) -> Result<(), Error> {
-        debug!("{:?}", self);
-
         match self {
             ApplicationCommandAction::CreateInvitePoll { guild_id, user_id } => {
                 let invite_poll =

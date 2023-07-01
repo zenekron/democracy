@@ -1,6 +1,5 @@
 use serenity::{
     model::prelude::{
-        component::ButtonStyle,
         interaction::{message_component::MessageComponentInteraction, InteractionResponseType},
         UserId,
     },
@@ -12,7 +11,6 @@ use crate::{
     entities::{InvitePoll, InvitePollVote},
     error::Error,
     handler::Handler,
-    util::colors,
 };
 
 #[derive(Debug)]

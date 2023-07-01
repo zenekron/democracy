@@ -1,12 +1,10 @@
-use std::{fmt::Display, pin::Pin};
+use std::fmt::Display;
 
 use base64::Engine;
 use chrono::{DateTime, Utc};
 use serenity::{
     builder::CreateInteractionResponse,
-    model::prelude::{
-        component::ButtonStyle, interaction::InteractionResponseType, GuildId, UserId,
-    },
+    model::prelude::{component::ButtonStyle, GuildId, UserId},
     prelude::Context,
 };
 use sqlx::PgPool;

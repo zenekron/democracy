@@ -8,7 +8,7 @@ use serenity::{
 use uuid::Uuid;
 
 use crate::{
-    entities::{InvitePoll, InvitePollVote},
+    entities::{InvitePoll, InvitePollVote, InvitePollVoteSubmission},
     error::Error,
     handler::Handler,
 };
@@ -38,21 +38,21 @@ impl MessageComponentAction {
                 user_id,
                 vote,
             } => {
+                // submit the vote
+                let _invite_poll_vote_submission = InvitePollVoteSubmission::upsert(
+                    &handler.pool,
+                    invite_poll_id.to_owned(),
+                    user_id,
+                    vote.to_owned(),
+                )
+                .await?;
+
+                // load the poll
                 let invite_poll = InvitePoll::find_by_id(&handler.pool, invite_poll_id)
                     .await?
                     .ok_or_else(|| Error::InvitePollNotFound(invite_poll_id.to_owned()))?;
-                info!("{:?}", invite_poll);
 
-                let _invite_poll_vote_submission = invite_poll
-                    .submit_vote(&handler.pool, user_id, vote.to_owned())
-                    .await?;
-                info!("{:?}", _invite_poll_vote_submission);
-
-                // reload the invite poll to fetch the new counts
-                let invite_poll = InvitePoll::find_by_id(&handler.pool, invite_poll_id)
-                    .await?
-                    .ok_or_else(|| Error::InvitePollNotFound(invite_poll_id.to_owned()))?;
-
+                // re-render message
                 let render = invite_poll.create_interaction_response(ctx.clone()).await?;
                 interaction
                     .create_interaction_response(&ctx.http, |resp| {

@@ -15,8 +15,6 @@ use crate::{
     util::{colors, emojis, ProgressBar},
 };
 
-use super::{invite_poll_vote_submission::InvitePollVoteSubmission, InvitePollVote};
-
 static BASE64: base64::engine::GeneralPurpose = base64::engine::general_purpose::STANDARD_NO_PAD;
 
 #[derive(Debug, sqlx::FromRow)]
@@ -82,15 +80,6 @@ impl InvitePoll {
 
     pub fn user_id(&self) -> UserId {
         UserId(self.user_id as u64)
-    }
-
-    pub async fn submit_vote(
-        &self,
-        pool: &PgPool,
-        user_id: &UserId,
-        vote: InvitePollVote,
-    ) -> Result<InvitePollVoteSubmission, Error> {
-        InvitePollVoteSubmission::upsert(pool, self.id, user_id, vote).await
     }
 
     pub async fn create_interaction_response(

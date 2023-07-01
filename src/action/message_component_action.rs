@@ -35,13 +35,18 @@ impl MessageComponentAction {
         match self {
             MessageComponentAction::SubmitInvitePollVote {
                 invite_poll_id,
-                user_id: _,
-                vote: _,
+                user_id,
+                vote,
             } => {
                 let invite_poll = InvitePoll::find_by_id(&handler.pool, invite_poll_id)
                     .await?
                     .ok_or_else(|| Error::InvitePollNotFound(invite_poll_id.to_owned()))?;
                 info!("{:?}", invite_poll);
+
+                let _invite_poll_vote_submission = invite_poll
+                    .submit_vote(&handler.pool, user_id, vote.to_owned())
+                    .await?;
+                info!("{:?}", _invite_poll_vote_submission);
 
                 interaction
                     .create_interaction_response(&ctx.http, |resp| {

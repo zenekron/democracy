@@ -1,9 +1,12 @@
+use base64::Engine;
 use chrono::{DateTime, Utc};
 use serenity::model::prelude::{GuildId, UserId};
 use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::error::Error;
+
+static BASE64: base64::engine::GeneralPurpose = base64::engine::general_purpose::STANDARD_NO_PAD;
 
 #[derive(Debug, sqlx::FromRow)]
 pub struct InvitePoll {
@@ -42,6 +45,21 @@ impl InvitePoll {
         ).fetch_optional(pool).await?;
 
         Ok(res)
+    }
+
+    pub fn decode_id(id: &str) -> Result<Uuid, Error> {
+        let buf = BASE64
+            .decode(id)
+            .map_err(|err| Error::InvitePollIdInvalid(id.to_owned(), err.into()))?;
+
+        let id = Uuid::from_slice(buf.as_slice())
+            .map_err(|err| Error::InvitePollIdInvalid(id.to_owned(), err.into()))?;
+
+        Ok(id)
+    }
+
+    pub fn encoded_id(&self) -> String {
+        BASE64.encode(self.id)
     }
 
     pub fn guild_id(&self) -> GuildId {

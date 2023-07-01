@@ -1,4 +1,3 @@
-use base64::Engine;
 use serenity::{
     model::prelude::{
         interaction::{message_component::MessageComponentInteraction, InteractionResponseType},
@@ -8,9 +7,11 @@ use serenity::{
 };
 use uuid::Uuid;
 
-use crate::{entities::InvitePollVote, error::Error, handler::Handler};
-
-static BASE64: base64::engine::GeneralPurpose = base64::engine::general_purpose::STANDARD_NO_PAD;
+use crate::{
+    entities::{InvitePoll, InvitePollVote},
+    error::Error,
+    handler::Handler,
+};
 
 #[derive(Debug)]
 pub enum MessageComponentAction {
@@ -64,14 +65,7 @@ impl TryFrom<&MessageComponentInteraction> for MessageComponentAction {
                     .find(|field| field.name == "Poll Id")
                     .map(|field| field.value.as_str())
                     .ok_or(Error::InvitePollIdNotFound)
-                    .and_then(|str| {
-                        let buf = BASE64.decode(str).map_err(|err| {
-                            Error::InvitePollIdInvalid(str.to_owned(), err.into())
-                        })?;
-
-                        Uuid::from_slice(buf.as_slice())
-                            .map_err(|err| Error::InvitePollIdInvalid(str.to_owned(), err.into()))
-                    })?;
+                    .and_then(InvitePoll::decode_id)?;
                 let user_id = interaction.user.id;
 
                 Ok(Self::SubmitInvitePollVote {
@@ -89,14 +83,7 @@ impl TryFrom<&MessageComponentInteraction> for MessageComponentAction {
                     .find(|field| field.name == "Poll Id")
                     .map(|field| field.value.as_str())
                     .ok_or(Error::InvitePollIdNotFound)
-                    .and_then(|str| {
-                        let buf = BASE64.decode(str).map_err(|err| {
-                            Error::InvitePollIdInvalid(str.to_owned(), err.into())
-                        })?;
-
-                        Uuid::from_slice(buf.as_slice())
-                            .map_err(|err| Error::InvitePollIdInvalid(str.to_owned(), err.into()))
-                    })?;
+                    .and_then(InvitePoll::decode_id)?;
                 let user_id = interaction.user.id;
 
                 Ok(Self::SubmitInvitePollVote {
@@ -114,14 +101,7 @@ impl TryFrom<&MessageComponentInteraction> for MessageComponentAction {
                     .find(|field| field.name == "Poll Id")
                     .map(|field| field.value.as_str())
                     .ok_or(Error::InvitePollIdNotFound)
-                    .and_then(|str| {
-                        let buf = BASE64.decode(str).map_err(|err| {
-                            Error::InvitePollIdInvalid(str.to_owned(), err.into())
-                        })?;
-
-                        Uuid::from_slice(buf.as_slice())
-                            .map_err(|err| Error::InvitePollIdInvalid(str.to_owned(), err.into()))
-                    })?;
+                    .and_then(InvitePoll::decode_id)?;
                 let user_id = interaction.user.id;
 
                 Ok(Self::SubmitInvitePollVote {

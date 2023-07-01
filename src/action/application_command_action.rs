@@ -1,6 +1,5 @@
 use std::str::FromStr;
 
-use base64::Engine;
 use serenity::{
     model::prelude::{
         command::{Command, CommandOptionType},
@@ -13,8 +12,6 @@ use serenity::{
 };
 
 use crate::{entities::InvitePoll, error::Error, handler::Handler, util::colors};
-
-static BASE64: base64::engine::GeneralPurpose = base64::engine::general_purpose::STANDARD_NO_PAD;
 
 #[derive(Debug)]
 pub enum ApplicationCommandAction {
@@ -64,7 +61,7 @@ impl ApplicationCommandAction {
                                         .color(colors::PASTEL_GREEN)
                                         .title("Invite Poll")
                                         .thumbnail(user.face())
-                                        .field("Poll Id", BASE64.encode(invite_poll.id), true)
+                                        .field("Poll Id", invite_poll.encoded_id(), true)
                                         .field("User", &user.name, true)
                                 })
                                 .components(|component| {

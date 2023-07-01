@@ -1,17 +1,25 @@
+use base64::Engine;
 use serenity::{
-    model::prelude::interaction::{
-        message_component::MessageComponentInteraction, InteractionResponseType,
+    model::prelude::{
+        interaction::{message_component::MessageComponentInteraction, InteractionResponseType},
+        UserId,
     },
     prelude::Context,
 };
+use uuid::Uuid;
 
-use crate::{error::Error, handler::Handler};
+use crate::{entities::InvitePollVote, error::Error, handler::Handler};
 
 static BASE64: base64::engine::GeneralPurpose = base64::engine::general_purpose::STANDARD_NO_PAD;
 
 #[derive(Debug)]
 pub enum MessageComponentAction {
-    SubmitInvitePollVote,
+    SubmitInvitePollVote {
+        invite_poll_id: Uuid,
+        /// Submitter's Id
+        user_id: UserId,
+        vote: InvitePollVote,
+    },
 }
 
 impl MessageComponentAction {
@@ -24,7 +32,11 @@ impl MessageComponentAction {
         debug!("{:?}", self);
 
         match self {
-            MessageComponentAction::SubmitInvitePollVote => {
+            MessageComponentAction::SubmitInvitePollVote {
+                invite_poll_id: _,
+                user_id: _,
+                vote: _,
+            } => {
                 interaction
                     .create_interaction_response(&ctx.http, |resp| {
                         resp.kind(InteractionResponseType::UpdateMessage)
@@ -41,7 +53,84 @@ impl MessageComponentAction {
 impl TryFrom<&MessageComponentInteraction> for MessageComponentAction {
     type Error = Error;
 
-    fn try_from(_interaction: &MessageComponentInteraction) -> Result<Self, Self::Error> {
-        todo!()
+    fn try_from(interaction: &MessageComponentInteraction) -> Result<Self, Self::Error> {
+        match interaction.data.custom_id.as_str() {
+            "democracy.invite-poll-vote.yes" => {
+                let invite_poll_id = interaction
+                    .message
+                    .embeds
+                    .iter()
+                    .flat_map(|embed| embed.fields.iter())
+                    .find(|field| field.name == "Poll Id")
+                    .map(|field| field.value.as_str())
+                    .ok_or(Error::InvitePollIdNotFound)
+                    .and_then(|str| {
+                        let buf = BASE64.decode(str).map_err(|err| {
+                            Error::InvitePollIdInvalid(str.to_owned(), err.into())
+                        })?;
+
+                        Uuid::from_slice(buf.as_slice())
+                            .map_err(|err| Error::InvitePollIdInvalid(str.to_owned(), err.into()))
+                    })?;
+                let user_id = interaction.user.id;
+
+                Ok(Self::SubmitInvitePollVote {
+                    invite_poll_id,
+                    user_id,
+                    vote: InvitePollVote::Yes,
+                })
+            }
+            "democracy.invite-poll-vote.maybe" => {
+                let invite_poll_id = interaction
+                    .message
+                    .embeds
+                    .iter()
+                    .flat_map(|embed| embed.fields.iter())
+                    .find(|field| field.name == "Poll Id")
+                    .map(|field| field.value.as_str())
+                    .ok_or(Error::InvitePollIdNotFound)
+                    .and_then(|str| {
+                        let buf = BASE64.decode(str).map_err(|err| {
+                            Error::InvitePollIdInvalid(str.to_owned(), err.into())
+                        })?;
+
+                        Uuid::from_slice(buf.as_slice())
+                            .map_err(|err| Error::InvitePollIdInvalid(str.to_owned(), err.into()))
+                    })?;
+                let user_id = interaction.user.id;
+
+                Ok(Self::SubmitInvitePollVote {
+                    invite_poll_id,
+                    user_id,
+                    vote: InvitePollVote::Maybe,
+                })
+            }
+            "democracy.invite-poll-vote.no" => {
+                let invite_poll_id = interaction
+                    .message
+                    .embeds
+                    .iter()
+                    .flat_map(|embed| embed.fields.iter())
+                    .find(|field| field.name == "Poll Id")
+                    .map(|field| field.value.as_str())
+                    .ok_or(Error::InvitePollIdNotFound)
+                    .and_then(|str| {
+                        let buf = BASE64.decode(str).map_err(|err| {
+                            Error::InvitePollIdInvalid(str.to_owned(), err.into())
+                        })?;
+
+                        Uuid::from_slice(buf.as_slice())
+                            .map_err(|err| Error::InvitePollIdInvalid(str.to_owned(), err.into()))
+                    })?;
+                let user_id = interaction.user.id;
+
+                Ok(Self::SubmitInvitePollVote {
+                    invite_poll_id,
+                    user_id,
+                    vote: InvitePollVote::No,
+                })
+            }
+            _ => todo!(),
+        }
     }
 }

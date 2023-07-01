@@ -3,7 +3,7 @@ use serenity::{
     model::prelude::{
         interaction::{
             application_command::ApplicationCommandInteraction,
-            message_component::MessageComponentInteraction, Interaction, InteractionResponseType,
+            message_component::MessageComponentInteraction, Interaction,
         },
         Ready,
     },

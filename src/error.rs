@@ -14,6 +14,12 @@ pub enum Error {
     #[error("command `{0}` can only be issued inside a guild")]
     GuildCommandNotInGuild(String),
 
+    #[error("could not extract a valid poll id")]
+    InvitePollIdNotFound,
+
+    #[error("value `{0}` is not a valid poll id: {1}")]
+    InvitePollIdInvalid(String, Box<dyn std::error::Error>),
+
     //
     // config
     //

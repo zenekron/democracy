@@ -3,21 +3,15 @@ use std::str::FromStr;
 use serenity::{
     model::prelude::{
         command::{Command, CommandOptionType},
-        component::ButtonStyle,
         interaction::{
             application_command::ApplicationCommandInteraction, InteractionResponseType,
         },
-        GuildId, ReactionType, UserId,
+        GuildId, UserId,
     },
     prelude::Context,
 };
 
-use crate::{
-    entities::InvitePoll,
-    error::Error,
-    handler::Handler,
-    util::{colors, emojis},
-};
+use crate::{entities::InvitePoll, error::Error, handler::Handler};
 
 #[derive(Debug)]
 pub enum ApplicationCommandAction {
@@ -55,44 +49,10 @@ impl ApplicationCommandAction {
                     InvitePoll::create(&handler.pool, guild_id.to_owned(), user_id.to_owned())
                         .await?;
 
-                // generate response
-                let user = user_id.to_user(&ctx.http).await?;
-
+                let render = invite_poll.create_interaction_response(ctx.clone()).await?;
                 interaction
                     .create_interaction_response(&ctx.http, |resp| {
-                        resp.kind(InteractionResponseType::ChannelMessageWithSource)
-                            .interaction_response_data(|data| {
-                                data.embed(|embed| {
-                                    embed
-                                        .color(colors::PASTEL_GREEN)
-                                        .title("Invite Poll")
-                                        .thumbnail(user.face())
-                                        .field("Poll Id", invite_poll.encoded_id(), true)
-                                        .field("User", &user.name, true)
-                                        .field("Results", invite_poll, false)
-                                })
-                                .components(|component| {
-                                    component.create_action_row(|row| {
-                                        row.create_button(|btn| {
-                                            btn.custom_id("democracy.invite-poll-vote.yes")
-                                                .label("Yes")
-                                                .style(ButtonStyle::Success)
-                                        })
-                                        .create_button(|btn| {
-                                            btn.custom_id("democracy.invite-poll-vote.maybe")
-                                                .label("Maybe")
-                                                .style(ButtonStyle::Primary)
-                                        })
-                                        .create_button(
-                                            |btn| {
-                                                btn.custom_id("democracy.invite-poll-vote.no")
-                                                    .label("No")
-                                                    .style(ButtonStyle::Danger)
-                                            },
-                                        )
-                                    })
-                                })
-                            })
+                        render(resp).kind(InteractionResponseType::ChannelMessageWithSource)
                     })
                     .await?;
 

@@ -1,14 +1,20 @@
-use std::fmt::Display;
+use std::{fmt::Display, pin::Pin};
 
 use base64::Engine;
 use chrono::{DateTime, Utc};
-use serenity::model::prelude::{GuildId, UserId};
+use serenity::{
+    builder::CreateInteractionResponse,
+    model::prelude::{
+        component::ButtonStyle, interaction::InteractionResponseType, GuildId, UserId,
+    },
+    prelude::Context,
+};
 use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::{
     error::Error,
-    util::{emojis, ProgressBar},
+    util::{colors, emojis, ProgressBar},
 };
 
 use super::{invite_poll_vote_submission::InvitePollVoteSubmission, InvitePollVote};
@@ -87,6 +93,56 @@ impl InvitePoll {
         vote: InvitePollVote,
     ) -> Result<InvitePollVoteSubmission, Error> {
         InvitePollVoteSubmission::upsert(pool, self.id, user_id, vote).await
+    }
+
+    pub async fn create_interaction_response(
+        &self,
+        ctx: Context,
+    ) -> Result<
+        Box<
+            dyn for<'a, 'b> FnOnce(
+                    &'a mut CreateInteractionResponse<'b>,
+                ) -> &'a mut CreateInteractionResponse<'b>
+                + Send
+                + Sync
+                + '_,
+        >,
+        Error,
+    > {
+        let user = self.user_id().to_user(&ctx.http).await?;
+
+        Ok(Box::new(move |resp| {
+            resp.interaction_response_data(|data| {
+                data.embed(|embed| {
+                    embed
+                        .color(colors::PASTEL_GREEN)
+                        .title("Invite Poll")
+                        .thumbnail(user.face())
+                        .field("Poll Id", self.encoded_id(), true)
+                        .field("User", &user.name, true)
+                        .field("Results", self, false)
+                })
+                .components(|component| {
+                    component.create_action_row(|row| {
+                        row.create_button(|btn| {
+                            btn.custom_id("democracy.invite-poll-vote.yes")
+                                .label("Yes")
+                                .style(ButtonStyle::Success)
+                        })
+                        .create_button(|btn| {
+                            btn.custom_id("democracy.invite-poll-vote.maybe")
+                                .label("Maybe")
+                                .style(ButtonStyle::Primary)
+                        })
+                        .create_button(|btn| {
+                            btn.custom_id("democracy.invite-poll-vote.no")
+                                .label("No")
+                                .style(ButtonStyle::Danger)
+                        })
+                    })
+                })
+            })
+        }))
     }
 }
 

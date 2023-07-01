@@ -8,7 +8,7 @@ use serenity::{
 };
 use sqlx::PgPool;
 
-use crate::{command::Command, error::Error};
+use crate::{action::Action, error::Error};
 
 pub struct Handler {
     pub pool: PgPool,
@@ -20,15 +20,15 @@ impl Handler {
         ctx: Context,
         interaction: &ApplicationCommandInteraction,
     ) -> Result<(), Error> {
-        let command = Command::try_from(interaction)?;
-        command.execute(self, ctx, interaction).await
+        let action = Action::try_from(interaction)?;
+        action.execute(self, ctx, interaction).await
     }
 }
 
 #[async_trait]
 impl EventHandler for Handler {
     async fn ready(&self, ctx: Context, _event: Ready) {
-        Command::register(ctx).await.unwrap();
+        Action::register(ctx).await.unwrap();
     }
 
     async fn interaction_create(&self, ctx: Context, interaction: Interaction) {

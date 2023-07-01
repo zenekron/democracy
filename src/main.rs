@@ -6,7 +6,7 @@ use serenity::{prelude::GatewayIntents, Client};
 use settings::Settings;
 use sqlx::postgres::PgPoolOptions;
 
-mod command;
+mod action;
 mod entities;
 mod error;
 mod handler;

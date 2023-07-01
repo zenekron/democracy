@@ -17,11 +17,11 @@ use crate::{entities::InvitePoll, error::Error, handler::Handler};
 static BASE64: base64::engine::GeneralPurpose = base64::engine::general_purpose::STANDARD_NO_PAD;
 
 #[derive(Debug)]
-pub enum Command {
+pub enum Action {
     Invite { guild_id: GuildId, user_id: UserId },
 }
 
-impl Command {
+impl Action {
     pub async fn register(ctx: Context) -> Result<(), Error> {
         let _invite = SerenityCommand::create_global_application_command(&ctx.http, |cmd| {
             cmd.name("invite")
@@ -47,7 +47,7 @@ impl Command {
         debug!("{:?}", self);
 
         match self {
-            Command::Invite { guild_id, user_id } => {
+            Action::Invite { guild_id, user_id } => {
                 let invite_poll =
                     InvitePoll::create(&handler.pool, guild_id.to_owned(), user_id.to_owned())
                         .await?;
@@ -98,7 +98,7 @@ impl Command {
     }
 }
 
-impl TryFrom<&ApplicationCommandInteraction> for Command {
+impl TryFrom<&ApplicationCommandInteraction> for Action {
     type Error = Error;
 
     fn try_from(interaction: &ApplicationCommandInteraction) -> Result<Self, Self::Error> {

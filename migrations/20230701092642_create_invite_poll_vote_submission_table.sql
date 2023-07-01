@@ -11,7 +11,7 @@ CREATE TABLE invite_poll_vote_submission (
 );
 
 CREATE TRIGGER invite_poll_vote_submission_update_updated_at
-AFTER UPDATE ON invite_poll_vote_submission
+BEFORE UPDATE ON invite_poll_vote_submission
 FOR EACH ROW
 EXECUTE FUNCTION update_updated_at();
 

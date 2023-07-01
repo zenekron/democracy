@@ -17,6 +17,6 @@ CREATE TABLE invite_poll (
 );
 
 CREATE TRIGGER invite_poll_update_updated_at
-AFTER UPDATE ON invite_poll
+BEFORE UPDATE ON invite_poll
 FOR EACH ROW
 EXECUTE FUNCTION update_updated_at();

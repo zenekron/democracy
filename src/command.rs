@@ -4,7 +4,7 @@ use serenity::{
     model::prelude::{
         command::{Command as SerenityCommand, CommandOptionType},
         interaction::application_command::ApplicationCommandInteraction,
-        UserId,
+        GuildId, UserId,
     },
     prelude::Context,
 };
@@ -13,7 +13,7 @@ use crate::{entities::InvitePoll, error::Error, handler::Handler};
 
 #[derive(Debug)]
 pub enum Command {
-    Invite { user_id: UserId },
+    Invite { guild_id: GuildId, user_id: UserId },
 }
 
 impl Command {
@@ -42,13 +42,10 @@ impl Command {
         debug!("{:?}", self);
 
         match self {
-            Command::Invite { user_id } => {
-                let guild_id = command
-                    .guild_id
-                    .ok_or_else(|| Error::GuildCommandNotInGuild("invite".to_string()))?;
-
+            Command::Invite { guild_id, user_id } => {
                 let invite_poll =
-                    InvitePoll::create(&handler.pool, guild_id, user_id.to_owned()).await?;
+                    InvitePoll::create(&handler.pool, guild_id.to_owned(), user_id.to_owned())
+                        .await?;
 
                 invite_poll
                     .create_interaction_response(&ctx, command)
@@ -63,12 +60,12 @@ impl Command {
 impl TryFrom<&ApplicationCommandInteraction> for Command {
     type Error = Error;
 
-    fn try_from(value: &ApplicationCommandInteraction) -> Result<Self, Self::Error> {
-        match value.data.name.as_str() {
+    fn try_from(interaction: &ApplicationCommandInteraction) -> Result<Self, Self::Error> {
+        match interaction.data.name.as_str() {
             "invite" => {
                 let mut user_id: Option<UserId> = None;
 
-                for opt in &value.data.options {
+                for opt in &interaction.data.options {
                     match opt.name.as_str() {
                         "user_id" => {
                             user_id = opt
@@ -88,10 +85,14 @@ impl TryFrom<&ApplicationCommandInteraction> for Command {
                     }
                 }
 
+                let guild_id = interaction
+                    .guild_id
+                    .ok_or_else(|| Error::GuildCommandNotInGuild(interaction.data.name.clone()))?;
+
                 match user_id {
-                    Some(user_id) => Ok(Self::Invite { user_id }),
+                    Some(user_id) => Ok(Self::Invite { guild_id, user_id }),
                     None => Err(Error::MissingCommandOption(
-                        "invite".to_owned(),
+                        interaction.data.name.clone(),
                         "user_id".to_owned(),
                     )),
                 }

@@ -10,7 +10,7 @@ use uuid::Uuid;
 
 use crate::{error::Error, util::colors};
 
-use super::InvitePollCount;
+use super::InvitePollVoteCount;
 
 static BASE64: base64::engine::GeneralPurpose = base64::engine::general_purpose::STANDARD_NO_PAD;
 
@@ -92,7 +92,7 @@ impl InvitePoll {
         Error,
     > {
         let user = self.user_id().to_user(&ctx.http).await?;
-        let count = InvitePollCount::compute(pool, &self.id).await?;
+        let count = InvitePollVoteCount::compute(pool, &self.id).await?;
 
         Ok(Box::new(move |resp| {
             resp.interaction_response_data(|data| {

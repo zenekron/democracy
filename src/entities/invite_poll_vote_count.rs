@@ -8,14 +8,14 @@ use crate::{
     util::{emojis, ProgressBar},
 };
 
-pub struct InvitePollCount {
+pub struct InvitePollVoteCount {
     pub invite_poll_id: Uuid,
     pub yes_count: i64,
     pub maybe_count: i64,
     pub no_count: i64,
 }
 
-impl InvitePollCount {
+impl InvitePollVoteCount {
     pub async fn compute(pool: &PgPool, invite_poll_id: &Uuid) -> Result<Self, Error> {
         let res = sqlx::query_as!(
             Self,
@@ -33,7 +33,7 @@ impl InvitePollCount {
         .fetch_optional(pool)
         .await?;
 
-        Ok(res.unwrap_or_else(|| InvitePollCount {
+        Ok(res.unwrap_or_else(|| InvitePollVoteCount {
             invite_poll_id: invite_poll_id.to_owned(),
             yes_count: 0,
             maybe_count: 0,
@@ -42,7 +42,7 @@ impl InvitePollCount {
     }
 }
 
-impl Display for InvitePollCount {
+impl Display for InvitePollVoteCount {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let max = 2_f32;
 

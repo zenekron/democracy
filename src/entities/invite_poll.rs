@@ -13,7 +13,7 @@ use crate::{
     util::{colors, emojis, ProgressBar},
 };
 
-use super::InvitePollVoteCount;
+use super::{InvitePollStatus, InvitePollVoteCount};
 
 static BASE64: base64::engine::GeneralPurpose = base64::engine::general_purpose::STANDARD_NO_PAD;
 
@@ -22,6 +22,7 @@ pub struct InvitePoll {
     pub id: Uuid,
     guild_id: i64,
     user_id: i64,
+    pub status: InvitePollStatus,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -33,11 +34,19 @@ impl InvitePoll {
             r#"
                 INSERT INTO invite_poll(guild_id, user_id)
                 VALUES ($1, $2)
-                RETURNING id, guild_id AS "guild_id: _", user_id AS "user_id: _", created_at, updated_at;
+                RETURNING
+                    id, guild_id AS "guild_id: _",
+                    user_id AS "user_id: _",
+                    status AS "status: _",
+                    created_at,
+                    updated_at
+                ;
             "#,
             guild_id.0 as i64,
             user_id.0 as i64
-        ).fetch_one(pool).await?;
+        )
+        .fetch_one(pool)
+        .await?;
 
         Ok(res)
     }
@@ -46,12 +55,19 @@ impl InvitePoll {
         let res = sqlx::query_as!(
             Self,
             r#"
-                SELECT id, guild_id AS "guild_id: _", user_id AS "user_id: _", created_at, updated_at
+                SELECT
+                    id, guild_id AS "guild_id: _",
+                    user_id AS "user_id: _",
+                    status AS "status: _",
+                    created_at,
+                    updated_at
                 FROM invite_poll
                 WHERE id = $1
             "#,
             id
-        ).fetch_optional(pool).await?;
+        )
+        .fetch_optional(pool)
+        .await?;
 
         Ok(res)
     }

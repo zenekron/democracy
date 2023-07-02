@@ -8,7 +8,10 @@ use serenity::{
 use sqlx::PgPool;
 use uuid::Uuid;
 
-use crate::{error::Error, util::colors};
+use crate::{
+    error::Error,
+    util::{colors, emojis, ProgressBar},
+};
 
 use super::InvitePollVoteCount;
 
@@ -92,7 +95,28 @@ impl InvitePoll {
         Error,
     > {
         let user = self.user_id().to_user(&ctx.http).await?;
+        let guild = self
+            .guild_id()
+            .to_partial_guild_with_counts(&ctx.http)
+            .await?;
         let count = InvitePollVoteCount::compute(pool, &self.id).await?;
+
+        let max = guild.approximate_member_count.unwrap_or(0);
+
+        let votes = {
+            let mut bar = ProgressBar::builder();
+            bar.max(max).with_count(true).with_percentage(true);
+
+            format!(
+                "{} {}\n{} {}\n{} {}",
+                emojis::LARGE_GREEN_CIRCLE,
+                bar.value(count.yes_count as u64).build().unwrap(),
+                emojis::LARGE_YELLOW_CIRCLE,
+                bar.value(count.maybe_count as u64).build().unwrap(),
+                emojis::LARGE_RED_CIRCLE,
+                bar.value(count.no_count as u64).build().unwrap(),
+            )
+        };
 
         Ok(Box::new(move |resp| {
             resp.interaction_response_data(|data| {
@@ -103,7 +127,7 @@ impl InvitePoll {
                         .thumbnail(user.face())
                         .field("Poll Id", self.encoded_id(), true)
                         .field("User", &user.name, true)
-                        .field("Results", count, false)
+                        .field("Votes", votes, false)
                 })
                 .components(|component| {
                     component.create_action_row(|row| {

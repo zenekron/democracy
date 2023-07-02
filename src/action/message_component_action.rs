@@ -51,7 +51,9 @@ impl MessageComponentAction {
                     .ok_or_else(|| Error::InvitePollNotFound(invite_poll_id.to_owned()))?;
 
                 // re-render message
-                let render = invite_poll.create_interaction_response(ctx.clone()).await?;
+                let render = invite_poll
+                    .create_interaction_response(ctx.clone(), &handler.pool)
+                    .await?;
                 interaction
                     .create_interaction_response(&ctx.http, |resp| {
                         render(resp).kind(InteractionResponseType::UpdateMessage)

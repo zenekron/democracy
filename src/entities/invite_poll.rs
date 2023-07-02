@@ -1,5 +1,3 @@
-use std::fmt::Display;
-
 use base64::Engine;
 use chrono::{DateTime, Utc};
 use serenity::{
@@ -10,10 +8,9 @@ use serenity::{
 use sqlx::PgPool;
 use uuid::Uuid;
 
-use crate::{
-    error::Error,
-    util::{colors, emojis, ProgressBar},
-};
+use crate::{error::Error, util::colors};
+
+use super::InvitePollCount;
 
 static BASE64: base64::engine::GeneralPurpose = base64::engine::general_purpose::STANDARD_NO_PAD;
 
@@ -22,9 +19,6 @@ pub struct InvitePoll {
     pub id: Uuid,
     guild_id: i64,
     user_id: i64,
-    pub yes_count: i32,
-    pub maybe_count: i32,
-    pub no_count: i32,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -36,7 +30,7 @@ impl InvitePoll {
             r#"
                 INSERT INTO invite_poll(guild_id, user_id)
                 VALUES ($1, $2)
-                RETURNING id, guild_id AS "guild_id: _", user_id AS "user_id: _", yes_count, maybe_count, no_count, created_at, updated_at;
+                RETURNING id, guild_id AS "guild_id: _", user_id AS "user_id: _", created_at, updated_at;
             "#,
             guild_id.0 as i64,
             user_id.0 as i64
@@ -49,7 +43,7 @@ impl InvitePoll {
         let res = sqlx::query_as!(
             Self,
             r#"
-                SELECT id, guild_id AS "guild_id: _", user_id AS "user_id: _", yes_count, maybe_count, no_count, created_at, updated_at
+                SELECT id, guild_id AS "guild_id: _", user_id AS "user_id: _", created_at, updated_at
                 FROM invite_poll
                 WHERE id = $1
             "#,
@@ -85,6 +79,7 @@ impl InvitePoll {
     pub async fn create_interaction_response(
         &self,
         ctx: Context,
+        pool: &PgPool,
     ) -> Result<
         Box<
             dyn for<'a, 'b> FnOnce(
@@ -97,6 +92,7 @@ impl InvitePoll {
         Error,
     > {
         let user = self.user_id().to_user(&ctx.http).await?;
+        let count = InvitePollCount::compute(pool, &self.id).await?;
 
         Ok(Box::new(move |resp| {
             resp.interaction_response_data(|data| {
@@ -107,7 +103,7 @@ impl InvitePoll {
                         .thumbnail(user.face())
                         .field("Poll Id", self.encoded_id(), true)
                         .field("User", &user.name, true)
-                        .field("Results", self, false)
+                        .field("Results", count, false)
                 })
                 .components(|component| {
                     component.create_action_row(|row| {
@@ -130,38 +126,5 @@ impl InvitePoll {
                 })
             })
         }))
-    }
-}
-
-impl Display for InvitePoll {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let max = 2_f32;
-
-        writeln!(
-            f,
-            "{} {} [{} · {:.0}%]",
-            emojis::LARGE_GREEN_CIRCLE,
-            ProgressBar(self.yes_count as f32 / max),
-            self.yes_count,
-            self.yes_count as f32 / max * 100.0
-        )?;
-        writeln!(
-            f,
-            "{} {} [{} · {:.0}%]",
-            emojis::LARGE_YELLOW_CIRCLE,
-            ProgressBar(self.maybe_count as f32 / max),
-            self.maybe_count,
-            self.maybe_count as f32 / max * 100.0
-        )?;
-        writeln!(
-            f,
-            "{} {} [{} · {:.0}%]",
-            emojis::LARGE_RED_CIRCLE,
-            ProgressBar(self.no_count as f32 / max),
-            self.no_count,
-            self.no_count as f32 / max * 100.0
-        )?;
-
-        Ok(())
     }
 }

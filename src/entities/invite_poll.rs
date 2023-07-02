@@ -95,13 +95,24 @@ impl InvitePoll {
         Error,
     > {
         let user = self.user_id().to_user(&ctx.http).await?;
-        let guild = self
-            .guild_id()
-            .to_partial_guild_with_counts(&ctx.http)
-            .await?;
+        let guild = self.guild_id().to_partial_guild(&ctx.http).await?;
         let count = InvitePollVoteCount::compute(pool, &self.id).await?;
 
-        let max = guild.approximate_member_count.unwrap_or(0);
+        let max = {
+            let mut max = 0;
+            let mut last_user_id: Option<UserId> = None;
+
+            loop {
+                let members = guild.members(&ctx.http, None, last_user_id).await?;
+                if members.len() == 0 {
+                    break;
+                }
+                max += members.iter().filter(|m| m.user.bot == false).count() as u64;
+                last_user_id = members.last().map(|u| u.user.id);
+            }
+
+            max
+        };
 
         let votes = {
             let mut bar = ProgressBar::builder();

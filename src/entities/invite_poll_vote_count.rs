@@ -3,6 +3,7 @@ use uuid::Uuid;
 
 use crate::error::Error;
 
+#[derive(Debug, sqlx::FromRow)]
 pub struct InvitePollVoteCount {
     pub invite_poll_id: Uuid,
     pub yes_count: i64,

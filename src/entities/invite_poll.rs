@@ -73,6 +73,12 @@ impl InvitePoll {
     }
 
     pub fn decode_id(id: &str) -> Result<Uuid, Error> {
+        let id = id
+            .strip_prefix('`')
+            .unwrap_or(id)
+            .strip_suffix('`')
+            .unwrap_or(id);
+
         let buf = BASE64
             .decode(id)
             .map_err(|err| Error::InvitePollIdInvalid(id.to_owned(), err.into()))?;
@@ -149,15 +155,35 @@ impl InvitePoll {
             resp.interaction_response_data(|data| {
                 data.embed(|embed| {
                     embed
-                        .color(colors::PASTEL_GREEN)
+                        .color(match self.status {
+                            InvitePollStatus::Open => colors::PASTEL_GREEN,
+                            InvitePollStatus::Closed => colors::PASTEL_RED,
+                        })
                         .title("Invite Poll")
                         .thumbnail(user.face())
-                        .field("Poll Id", self.encoded_id(), true)
+                        .field(
+                            "Poll Id",
+                            ["`", self.encoded_id().as_str(), "`"].concat(),
+                            true,
+                        )
+                        .field(
+                            "Status",
+                            match self.status {
+                                InvitePollStatus::Open => {
+                                    emojis::LARGE_GREEN_CIRCLE.to_string() + " Open"
+                                }
+                                InvitePollStatus::Closed => {
+                                    emojis::LARGE_RED_CIRCLE.to_string() + " Closed"
+                                }
+                            },
+                            true,
+                        )
+                        .field("", "", true)
                         .field("User", &user.name, true)
                         .field("Votes", votes, false)
                 })
-                .components(|component| {
-                    component.create_action_row(|row| {
+                .components(|component| match self.status {
+                    InvitePollStatus::Open => component.create_action_row(|row| {
                         row.create_button(|btn| {
                             btn.custom_id("democracy.invite-poll-vote.yes")
                                 .label("Yes")
@@ -173,7 +199,8 @@ impl InvitePoll {
                                 .label("No")
                                 .style(ButtonStyle::Danger)
                         })
-                    })
+                    }),
+                    InvitePollStatus::Closed => component,
                 })
             })
         }))

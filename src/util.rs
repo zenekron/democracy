@@ -1,24 +1,52 @@
 use std::fmt::{Display, Write};
 
-const PROGRESSBAR_EMPTY_CHAR: char = '░';
-const PROGRESSBAR_FULL_CHAR: char = '█';
+#[derive(Debug, derive_builder::Builder)]
+pub struct ProgressBar {
+    value: u64,
+    max: u64,
 
-pub struct ProgressBar(pub f32);
+    #[builder(default = "10")]
+    length: u64,
+
+    #[builder(default = "'░'")]
+    empty_symbol: char,
+
+    #[builder(default = "'█'")]
+    full_symbol: char,
+
+    #[builder(default = "false")]
+    with_count: bool,
+
+    #[builder(default = "false")]
+    with_percentage: bool,
+}
+
+impl ProgressBar {
+    pub fn builder() -> ProgressBarBuilder {
+        ProgressBarBuilder::default()
+    }
+}
 
 impl Display for ProgressBar {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let bar_length: u32 = 10;
-        let nblocks = (self.0.min(1.0) * (bar_length as f32)) as u32;
+        let value = (self.value as f32) / (self.max as f32);
+        let nblocks = (value * self.length as f32) as u64;
 
         for _ in 0..nblocks {
-            f.write_char(PROGRESSBAR_FULL_CHAR)?;
+            f.write_char(self.full_symbol)?;
         }
 
-        for _ in nblocks..bar_length {
-            f.write_char(PROGRESSBAR_EMPTY_CHAR)?;
+        for _ in nblocks..self.length {
+            f.write_char(self.empty_symbol)?;
         }
 
-        Ok(())
+        let percent = (value * 100.0) as usize;
+        match (self.with_count, self.with_percentage) {
+            (false, false) => Ok(()),
+            (true, false) => write!(f, " [{}/{}]", self.value, self.max),
+            (false, true) => write!(f, " [{:.0}%]", percent),
+            (true, true) => write!(f, " [{}/{} · {:.0}%]", self.value, self.max, percent),
+        }
     }
 }
 

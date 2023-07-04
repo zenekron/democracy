@@ -13,7 +13,11 @@ use serenity::{
     prelude::Context,
 };
 
-use crate::{entities::InvitePoll, error::Error, handler::Handler};
+use crate::{
+    entities::{InvitePoll, InvitePollWithVoteCount},
+    error::Error,
+    handler::Handler,
+};
 
 static DEFAULT_POLL_DURATION: Lazy<Duration> = Lazy::new(|| Duration::days(3));
 
@@ -69,9 +73,14 @@ impl ApplicationCommandAction {
                 )
                 .await?;
 
-                let render = invite_poll
-                    .create_interaction_response(ctx.clone(), &handler.pool)
-                    .await?;
+                let invite_poll = InvitePollWithVoteCount {
+                    invite_poll,
+                    yes_count: 0,
+                    maybe_count: 0,
+                    no_count: 0,
+                };
+
+                let render = invite_poll.create_interaction_response(ctx.clone()).await?;
                 interaction
                     .create_interaction_response(&ctx.http, |resp| {
                         render(resp).kind(InteractionResponseType::ChannelMessageWithSource)

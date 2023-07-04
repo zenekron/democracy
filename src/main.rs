@@ -3,13 +3,12 @@ extern crate log;
 
 use std::time::Duration;
 
-use entities::InvitePoll;
 use handler::Handler;
 use serenity::{prelude::GatewayIntents, Client};
 use settings::Settings;
 use sqlx::{postgres::PgPoolOptions, PgPool};
 
-use crate::error::Error;
+use crate::{entities::InvitePollWithVoteCount, error::Error};
 
 mod action;
 mod entities;
@@ -45,7 +44,7 @@ async fn background_poll_closer(pool: &PgPool) -> Result<(), Error> {
     loop {
         interval.tick().await;
 
-        let polls = InvitePoll::find_pending_with_count(pool).await?;
+        let polls = InvitePollWithVoteCount::find_expired(pool).await?;
         debug!("polls: {:?}", polls);
     }
 }

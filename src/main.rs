@@ -34,8 +34,11 @@ async fn main() -> Result<(), crate::error::Error> {
     .event_handler(Handler { pool: pool.clone() })
     .await?;
 
-    let (bres, cres) = tokio::join!(background_poll_closer(&pool), client.start());
-    bres.and(cres.map_err(Into::into))
+    let ((), ()) = tokio::try_join!(background_poll_closer(&pool), async {
+        client.start().await.map_err(Into::into)
+    })?;
+
+    Ok(())
 }
 
 async fn background_poll_closer(pool: &PgPool) -> Result<(), Error> {

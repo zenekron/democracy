@@ -51,11 +51,18 @@ impl Display for ProgressBar {
 }
 
 pub mod colors {
+    #![allow(dead_code)]
+
     use serenity::utils::Color;
 
-    // https://www.colorhexa.com/77dd77
-    pub static PASTEL_GREEN: Color = Color::new(0x77dd77);
-    pub static PASTEL_RED: Color = Color::new(0xff6961);
+    // https://discord.com/branding
+    pub static DISCORD_BLURPLE: Color = Color::new(0x5865F2);
+    pub static DISCORD_GREEN: Color = Color::new(0x57F287);
+    pub static DISCORD_YELLOW: Color = Color::new(0xFEE75C);
+    pub static DISCORD_FUCHSIA: Color = Color::new(0xEB459E);
+    pub static DISCORD_RED: Color = Color::new(0xED4245);
+    pub static DISCORD_WHITE: Color = Color::new(0xFFFFFF);
+    pub static DISCORD_BLACK: Color = Color::new(0x000000);
 }
 
 pub mod emojis {

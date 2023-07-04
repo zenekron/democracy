@@ -115,8 +115,8 @@ impl InvitePollWithVoteCount {
                 data.embed(|embed| {
                     embed
                         .color(match self.invite_poll.status {
-                            InvitePollStatus::Open => colors::PASTEL_GREEN,
-                            InvitePollStatus::Closed => colors::PASTEL_RED,
+                            InvitePollStatus::Open => colors::DISCORD_GREEN,
+                            InvitePollStatus::Closed => colors::DISCORD_GREEN,
                         })
                         .title("Invite Poll")
                         .thumbnail(user.face())

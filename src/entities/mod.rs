@@ -7,7 +7,7 @@ pub use invite_poll_vote_submission::InvitePollVoteSubmission;
 pub use invite_poll_with_vote_count::InvitePollWithVoteCount;
 
 #[derive(Clone, Copy, Debug, sqlx::Type)]
-#[sqlx(rename_all = "lowercase")]
+#[sqlx(type_name = "invite_poll_outcome", rename_all = "lowercase")]
 pub enum InvitePollOutcome {
     Allow,
     Deny,

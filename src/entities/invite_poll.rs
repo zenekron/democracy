@@ -55,6 +55,22 @@ impl InvitePoll {
         Ok(res)
     }
 
+    pub async fn save(&mut self, pool: &PgPool) -> Result<(), Error> {
+        sqlx::query(
+            r#"
+                UPDATE invite_poll
+                SET outcome = $1
+                WHERE id = $2
+            "#,
+        )
+        .bind(self.outcome)
+        .bind(self.id)
+        .execute(pool)
+        .await?;
+
+        Ok(())
+    }
+
     pub async fn find_by_id(pool: &PgPool, id: &Uuid) -> Result<Option<Self>, Error> {
         let res = sqlx::query_as!(
             Self,

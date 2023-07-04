@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use serenity::{
     async_trait,
     model::prelude::{
@@ -13,6 +15,7 @@ use sqlx::PgPool;
 
 use crate::{
     action::{ApplicationCommandAction, MessageComponentAction},
+    entities::{InvitePollOutcome, InvitePollWithVoteCount},
     error::Error,
 };
 
@@ -43,7 +46,10 @@ impl Handler {
 #[async_trait]
 impl EventHandler for Handler {
     async fn ready(&self, ctx: Context, _event: Ready) {
-        ApplicationCommandAction::register(ctx).await.unwrap();
+        ApplicationCommandAction::register(ctx.clone())
+            .await
+            .unwrap();
+        background_poll_closer(&self.pool, &ctx).await.unwrap();
     }
 
     async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
@@ -71,6 +77,51 @@ impl EventHandler for Handler {
             }
 
             ref other => warn!("unhandled interaction: {:?}", other),
+        }
+    }
+}
+
+async fn background_poll_closer(pool: &PgPool, ctx: &Context) -> Result<(), Error> {
+    let mut interval = tokio::time::interval(Duration::from_secs(60));
+
+    loop {
+        interval.tick().await;
+
+        let polls = InvitePollWithVoteCount::find_expired(pool).await?;
+        for mut poll in polls {
+            debug!("expired poll: {:?}", poll);
+
+            let outcome = poll.outcome(ctx).await?;
+            poll.invite_poll.outcome = Some(outcome);
+            debug!("expired poll outcome: {:?}", outcome);
+
+            if matches!(outcome, InvitePollOutcome::Allow) {
+                let guild = poll
+                    .invite_poll
+                    .guild_id()
+                    .to_partial_guild(&ctx.http)
+                    .await?;
+                let general = guild
+                    .channels(&ctx.http)
+                    .await?
+                    .into_values()
+                    .find(|ch| ch.name == "general")
+                    .unwrap();
+                let invite = general
+                    .create_invite(&ctx.http, |invite| invite.unique(true).max_uses(1))
+                    .await?;
+
+                let pm = poll
+                    .invite_poll
+                    .user_id()
+                    .create_dm_channel(&ctx.http)
+                    .await?;
+
+                pm.send_message(&ctx.http, |msg| msg.content(invite.url()))
+                    .await?;
+            }
+
+            poll.invite_poll.save(pool).await?;
         }
     }
 }

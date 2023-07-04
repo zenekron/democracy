@@ -1,14 +1,10 @@
 #[macro_use]
 extern crate log;
 
-use std::time::Duration;
-
 use handler::Handler;
 use serenity::{prelude::GatewayIntents, Client};
 use settings::Settings;
-use sqlx::{postgres::PgPoolOptions, PgPool};
-
-use crate::{entities::InvitePollWithVoteCount, error::Error};
+use sqlx::postgres::PgPoolOptions;
 
 mod action;
 mod entities;
@@ -34,20 +30,6 @@ async fn main() -> Result<(), crate::error::Error> {
     .event_handler(Handler { pool: pool.clone() })
     .await?;
 
-    let ((), ()) = tokio::try_join!(background_poll_closer(&pool), async {
-        client.start().await.map_err(Into::into)
-    })?;
-
+    client.start().await?;
     Ok(())
-}
-
-async fn background_poll_closer(pool: &PgPool) -> Result<(), Error> {
-    let mut interval = tokio::time::interval(Duration::from_secs(60));
-
-    loop {
-        interval.tick().await;
-
-        let polls = InvitePollWithVoteCount::find_expired(pool).await?;
-        debug!("polls: {:?}", polls);
-    }
 }

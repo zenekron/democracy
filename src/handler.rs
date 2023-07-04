@@ -24,6 +24,12 @@ pub struct Handler {
 }
 
 impl Handler {
+    async fn on_ready(&self, ctx: Context, _ready: &Ready) -> Result<(), Error> {
+        ApplicationCommandAction::register(ctx.clone()).await?;
+        background_poll_closer(&self.pool, &ctx).await?;
+        Ok(())
+    }
+
     async fn on_application_command_interaction(
         &self,
         ctx: Context,
@@ -45,11 +51,8 @@ impl Handler {
 
 #[async_trait]
 impl EventHandler for Handler {
-    async fn ready(&self, ctx: Context, _event: Ready) {
-        ApplicationCommandAction::register(ctx.clone())
-            .await
-            .unwrap();
-        background_poll_closer(&self.pool, &ctx).await.unwrap();
+    async fn ready(&self, ctx: Context, event: Ready) {
+        self.on_ready(ctx, &event).await.unwrap();
     }
 
     async fn interaction_create(&self, ctx: Context, interaction: Interaction) {

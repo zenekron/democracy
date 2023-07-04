@@ -42,9 +42,8 @@ impl ApplicationCommandAction {
                 })
                 .create_option(|opt| {
                     opt.name("duration")
-                        .kind(CommandOptionType::Integer)
-                        .description("Duration in days of the poll")
-                        .min_int_value(1)
+                        .kind(CommandOptionType::String)
+                        .description("Duration of the poll")
                 })
         })
         .await?;
@@ -110,8 +109,14 @@ impl TryFrom<&ApplicationCommandInteraction> for ApplicationCommandAction {
                             duration = opt
                                 .value
                                 .as_ref()
-                                .and_then(|val| val.as_i64())
-                                .map(Duration::days);
+                                .and_then(|val| val.as_str())
+                                .map::<Result<_, Box<dyn std::error::Error>>, _>(|str| {
+                                    let dur = humantime::parse_duration(str)?;
+                                    let dur = Duration::from_std(dur)?;
+                                    Ok(dur)
+                                })
+                                .transpose()
+                                .map_err(Error::InvalidDuration)?;
                         }
 
                         other => {

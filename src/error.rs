@@ -25,6 +25,9 @@ pub enum Error {
     #[error("value `{0}` is not a valid poll id: {1}")]
     InvitePollIdInvalid(String, Box<dyn std::error::Error>),
 
+    #[error(transparent)]
+    InvalidDuration(Box<dyn std::error::Error>),
+
     //
     // config
     //

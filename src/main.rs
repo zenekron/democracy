@@ -8,6 +8,7 @@ use sqlx::{postgres::PgPoolOptions, PgPool};
 use tokio::sync::OnceCell;
 
 mod action;
+mod background_poll_handler;
 mod entities;
 mod error;
 mod handler;

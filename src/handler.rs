@@ -7,25 +7,25 @@ use serenity::{
             application_command::ApplicationCommandInteraction,
             message_component::MessageComponentInteraction, Interaction,
         },
-        Ready, UserId,
+        Ready,
     },
     prelude::{Context, EventHandler},
 };
 
 use crate::{
     action::{ApplicationCommandAction, MessageComponentAction},
-    entities::{InvitePollOutcome, InvitePollWithVoteCount},
+    background_poll_handler::BackgroundPollHandler,
     error::Error,
 };
-
-const VOTE_THRESHOLD: f32 = 0.8;
 
 pub struct Handler;
 
 impl Handler {
     async fn on_ready(&self, ctx: Context, _ready: &Ready) -> Result<(), Error> {
         ApplicationCommandAction::register(ctx.clone()).await?;
-        background_poll_closer(&ctx).await?;
+        BackgroundPollHandler::new(ctx, Duration::from_secs(60))
+            .start()
+            .await?;
         Ok(())
     }
 
@@ -79,82 +79,6 @@ impl EventHandler for Handler {
             }
 
             ref other => warn!("unhandled interaction: {:?}", other),
-        }
-    }
-}
-
-async fn background_poll_closer(ctx: &Context) -> Result<(), Error> {
-    let mut interval = tokio::time::interval(Duration::from_secs(60));
-
-    loop {
-        interval.tick().await;
-
-        let polls = InvitePollWithVoteCount::find_expired().await?;
-        for mut poll in polls {
-            debug!("expired poll: {:?}", poll);
-
-            let guild_users = {
-                let guild = poll
-                    .invite_poll
-                    .guild_id()
-                    .to_partial_guild(&ctx.http)
-                    .await?;
-
-                let mut max = 0_usize;
-                let mut after: Option<UserId> = None;
-                loop {
-                    let page = guild.members(&ctx.http, None, after).await?;
-                    if page.len() == 0 {
-                        break;
-                    }
-
-                    max += page.iter().filter(|m| m.user.bot == false).count();
-                    after = page.last().map(|u| u.user.id);
-                }
-
-                max
-            };
-
-            let outcome = {
-                let required_votes = (guild_users as f32 * VOTE_THRESHOLD).ceil() as usize;
-
-                if poll.no_count == 0
-                    && (poll.yes_count + poll.maybe_count) >= required_votes as i64
-                {
-                    InvitePollOutcome::Allow
-                } else {
-                    InvitePollOutcome::Deny
-                }
-            };
-            debug!("expired poll outcome: {:?}", outcome);
-
-            if outcome == InvitePollOutcome::Allow {
-                let guild = poll
-                    .invite_poll
-                    .guild_id()
-                    .to_partial_guild(&ctx.http)
-                    .await?;
-                let general = guild
-                    .channels(&ctx.http)
-                    .await?
-                    .into_values()
-                    .find(|ch| ch.name == "general")
-                    .unwrap();
-                let invite = general
-                    .create_invite(&ctx.http, |invite| invite.unique(true).max_uses(1))
-                    .await?;
-
-                let pm = poll
-                    .invite_poll
-                    .user_id()
-                    .create_dm_channel(&ctx.http)
-                    .await?;
-
-                pm.send_message(&ctx.http, |msg| msg.content(invite.url()))
-                    .await?;
-            }
-
-            poll.invite_poll.close(outcome).await?;
         }
     }
 }

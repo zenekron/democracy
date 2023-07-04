@@ -44,7 +44,7 @@ impl InvitePollWithVoteCount {
         let res = sqlx::query_as::<_, Self>(
             r#"
                 SELECT * FROM invite_poll_with_vote_count
-                WHERE id = $1 AND status = 'open' AND ends_at <= now();
+                WHERE status = 'open' AND ends_at <= now();
             "#,
         )
         .fetch_all(pool)

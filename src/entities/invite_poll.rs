@@ -71,29 +71,6 @@ impl InvitePoll {
         Ok(())
     }
 
-    pub async fn find_by_id(pool: &PgPool, id: &Uuid) -> Result<Option<Self>, Error> {
-        let res = sqlx::query_as!(
-            Self,
-            r#"
-                SELECT
-                    id,
-                    guild_id AS "guild_id: _",
-                    user_id AS "user_id: _",
-                    outcome AS "outcome: _",
-                    ends_at,
-                    created_at,
-                    updated_at
-                FROM invite_poll
-                WHERE id = $1
-            "#,
-            id
-        )
-        .fetch_optional(pool)
-        .await?;
-
-        Ok(res)
-    }
-
     pub fn decode_id(id: &str) -> Result<Uuid, Error> {
         let id = id
             .strip_prefix('`')

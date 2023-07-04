@@ -114,42 +114,6 @@ impl InvitePollWithVoteCount {
         Error,
     > {
         let user = self.invite_poll.user_id().to_user(&ctx.http).await?;
-        let guild = self
-            .invite_poll
-            .guild_id()
-            .to_partial_guild(&ctx.http)
-            .await?;
-
-        let max = {
-            let mut max = 0;
-            let mut last_user_id: Option<UserId> = None;
-
-            loop {
-                let members = guild.members(&ctx.http, None, last_user_id).await?;
-                if members.len() == 0 {
-                    break;
-                }
-                max += members.iter().filter(|m| m.user.bot == false).count() as u64;
-                last_user_id = members.last().map(|u| u.user.id);
-            }
-
-            max
-        };
-
-        let votes = {
-            let mut bar = ProgressBar::builder();
-            bar.max(max).with_count(true).with_percentage(true);
-
-            format!(
-                "{} {}\n{} {}\n{} {}",
-                emojis::LARGE_GREEN_CIRCLE,
-                bar.value(self.yes_count as u64).build().unwrap(),
-                emojis::LARGE_YELLOW_CIRCLE,
-                bar.value(self.maybe_count as u64).build().unwrap(),
-                emojis::LARGE_RED_CIRCLE,
-                bar.value(self.no_count as u64).build().unwrap(),
-            )
-        };
 
         Ok(Box::new(move |resp| {
             resp.interaction_response_data(|data| {
@@ -173,7 +137,26 @@ impl InvitePollWithVoteCount {
                         )
                         .field("", "", true)
                         .field("User", &user.name, true)
-                        .field("Votes", votes, false)
+                        .field(
+                            "Votes",
+                            {
+                                let mut bar = ProgressBar::builder();
+                                bar.max((self.yes_count + self.maybe_count + self.no_count) as u64)
+                                    .with_count(true)
+                                    .with_percentage(true);
+
+                                format!(
+                                    "{} {}\n{} {}\n{} {}",
+                                    emojis::LARGE_GREEN_CIRCLE,
+                                    bar.value(self.yes_count as u64).build().unwrap(),
+                                    emojis::LARGE_YELLOW_CIRCLE,
+                                    bar.value(self.maybe_count as u64).build().unwrap(),
+                                    emojis::LARGE_RED_CIRCLE,
+                                    bar.value(self.no_count as u64).build().unwrap(),
+                                )
+                            },
+                            false,
+                        )
                 })
                 .components(|component| match self.invite_poll.outcome {
                     Some(_) => component,

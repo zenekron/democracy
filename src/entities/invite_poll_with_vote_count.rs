@@ -11,7 +11,7 @@ use crate::{
     util::{colors, emojis, ProgressBar},
 };
 
-use super::{InvitePoll, InvitePollStatus};
+use super::{InvitePoll, InvitePollOutcome};
 
 #[derive(Debug, sqlx::FromRow)]
 pub struct InvitePollWithVoteCount {
@@ -44,7 +44,7 @@ impl InvitePollWithVoteCount {
         let res = sqlx::query_as::<_, Self>(
             r#"
                 SELECT * FROM invite_poll_with_vote_count
-                WHERE status = 'open' AND ends_at <= now();
+                WHERE outcome IS NULL AND ends_at <= now();
             "#,
         )
         .fetch_all(pool)
@@ -114,9 +114,10 @@ impl InvitePollWithVoteCount {
             resp.interaction_response_data(|data| {
                 data.embed(|embed| {
                     embed
-                        .color(match self.invite_poll.status {
-                            InvitePollStatus::Open => colors::DISCORD_GREEN,
-                            InvitePollStatus::Closed => colors::DISCORD_GREEN,
+                        .color(match self.invite_poll.outcome {
+                            Some(InvitePollOutcome::Allow) => colors::DISCORD_GREEN,
+                            Some(InvitePollOutcome::Deny) => colors::DISCORD_RED,
+                            None => colors::DISCORD_BLURPLE,
                         })
                         .title("Invite Poll")
                         .thumbnail(user.face())
@@ -127,13 +128,9 @@ impl InvitePollWithVoteCount {
                         )
                         .field(
                             "Status",
-                            match self.invite_poll.status {
-                                InvitePollStatus::Open => {
-                                    emojis::LARGE_GREEN_CIRCLE.to_string() + " Open"
-                                }
-                                InvitePollStatus::Closed => {
-                                    emojis::LARGE_RED_CIRCLE.to_string() + " Closed"
-                                }
+                            match self.invite_poll.outcome {
+                                Some(_) => emojis::LARGE_RED_CIRCLE.to_string() + " Closed",
+                                None => emojis::LARGE_GREEN_CIRCLE.to_string() + " Open",
                             },
                             true,
                         )
@@ -141,8 +138,9 @@ impl InvitePollWithVoteCount {
                         .field("User", &user.name, true)
                         .field("Votes", votes, false)
                 })
-                .components(|component| match self.invite_poll.status {
-                    InvitePollStatus::Open => component.create_action_row(|row| {
+                .components(|component| match self.invite_poll.outcome {
+                    Some(_) => component,
+                    None => component.create_action_row(|row| {
                         row.create_button(|btn| {
                             btn.custom_id("democracy.invite-poll-vote.yes")
                                 .label("Yes")
@@ -159,7 +157,6 @@ impl InvitePollWithVoteCount {
                                 .style(ButtonStyle::Danger)
                         })
                     }),
-                    InvitePollStatus::Closed => component,
                 })
             })
         }))

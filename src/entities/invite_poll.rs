@@ -6,7 +6,7 @@ use uuid::Uuid;
 
 use crate::error::Error;
 
-use super::InvitePollStatus;
+use super::InvitePollOutcome;
 
 static BASE64: base64::engine::GeneralPurpose = base64::engine::general_purpose::STANDARD_NO_PAD;
 
@@ -15,7 +15,7 @@ pub struct InvitePoll {
     pub id: Uuid,
     guild_id: i64,
     user_id: i64,
-    pub status: InvitePollStatus,
+    pub outcome: Option<InvitePollOutcome>,
     pub ends_at: DateTime<Utc>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -36,9 +36,10 @@ impl InvitePoll {
                 INSERT INTO invite_poll(guild_id, user_id, ends_at)
                 VALUES ($1, $2, now() + $3)
                 RETURNING
-                    id, guild_id AS "guild_id: _",
+                    id,
+                    guild_id AS "guild_id: _",
                     user_id AS "user_id: _",
-                    status AS "status: _",
+                    outcome AS "outcome: _",
                     ends_at,
                     created_at,
                     updated_at
@@ -59,9 +60,10 @@ impl InvitePoll {
             Self,
             r#"
                 SELECT
-                    id, guild_id AS "guild_id: _",
+                    id,
+                    guild_id AS "guild_id: _",
                     user_id AS "user_id: _",
-                    status AS "status: _",
+                    outcome AS "outcome: _",
                     ends_at,
                     created_at,
                     updated_at

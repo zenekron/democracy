@@ -6,7 +6,7 @@ pub use invite_poll::*;
 pub use invite_poll_vote_submission::*;
 pub use invite_poll_with_vote_count::*;
 
-#[derive(Clone, Copy, Debug, sqlx::Type)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, sqlx::Type)]
 #[sqlx(type_name = "invite_poll_outcome", rename_all = "lowercase")]
 pub enum InvitePollOutcome {
     Allow,

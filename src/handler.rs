@@ -7,7 +7,7 @@ use serenity::{
             application_command::ApplicationCommandInteraction,
             message_component::MessageComponentInteraction, Interaction,
         },
-        Ready,
+        Ready, UserId,
     },
     prelude::{Context, EventHandler},
 };
@@ -17,6 +17,8 @@ use crate::{
     entities::{InvitePollOutcome, InvitePollWithVoteCount},
     error::Error,
 };
+
+const VOTE_THRESHOLD: f32 = 0.8;
 
 pub struct Handler;
 
@@ -91,11 +93,42 @@ async fn background_poll_closer(ctx: &Context) -> Result<(), Error> {
         for mut poll in polls {
             debug!("expired poll: {:?}", poll);
 
-            let outcome = poll.outcome(ctx).await?;
-            poll.invite_poll.outcome = Some(outcome);
+            let guild_users = {
+                let guild = poll
+                    .invite_poll
+                    .guild_id()
+                    .to_partial_guild(&ctx.http)
+                    .await?;
+
+                let mut max = 0_usize;
+                let mut after: Option<UserId> = None;
+                loop {
+                    let page = guild.members(&ctx.http, None, after).await?;
+                    if page.len() == 0 {
+                        break;
+                    }
+
+                    max += page.iter().filter(|m| m.user.bot == false).count();
+                    after = page.last().map(|u| u.user.id);
+                }
+
+                max
+            };
+
+            let outcome = {
+                let required_votes = (guild_users as f32 * VOTE_THRESHOLD).ceil() as usize;
+
+                if poll.no_count == 0
+                    && (poll.yes_count + poll.maybe_count) >= required_votes as i64
+                {
+                    InvitePollOutcome::Allow
+                } else {
+                    InvitePollOutcome::Deny
+                }
+            };
             debug!("expired poll outcome: {:?}", outcome);
 
-            if matches!(outcome, InvitePollOutcome::Allow) {
+            if outcome == InvitePollOutcome::Allow {
                 let guild = poll
                     .invite_poll
                     .guild_id()

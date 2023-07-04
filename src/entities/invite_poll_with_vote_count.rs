@@ -1,7 +1,5 @@
 use serenity::{
-    builder::CreateInteractionResponse,
-    model::prelude::{component::ButtonStyle, UserId},
-    prelude::Context,
+    builder::CreateInteractionResponse, model::prelude::component::ButtonStyle, prelude::Context,
 };
 
 use crate::{
@@ -11,8 +9,6 @@ use crate::{
 };
 
 use super::{InvitePoll, InvitePollId, InvitePollOutcome};
-
-const VOTE_THRESHOLD: f32 = 0.8;
 
 #[derive(Debug, sqlx::FromRow)]
 pub struct InvitePollWithVoteCount {
@@ -24,49 +20,6 @@ pub struct InvitePollWithVoteCount {
     pub no_count: i64,
 }
 
-impl InvitePollWithVoteCount {
-    pub async fn outcome(&self, ctx: &Context) -> Result<InvitePollOutcome, Error> {
-        match self.invite_poll.outcome {
-            Some(val) => Ok(val),
-            None => {
-                let user_count = self.user_count(ctx).await?;
-                let required_votes = (user_count as f32 * VOTE_THRESHOLD).ceil() as i64;
-
-                if self.no_count == 0 && (self.yes_count + self.maybe_count) >= required_votes {
-                    Ok(InvitePollOutcome::Allow)
-                } else {
-                    Ok(InvitePollOutcome::Deny)
-                }
-            }
-        }
-    }
-
-    async fn user_count(&self, ctx: &Context) -> Result<u64, Error> {
-        let guild = self
-            .invite_poll
-            .guild_id()
-            .to_partial_guild(&ctx.http)
-            .await?;
-
-        let mut max = 0;
-        let mut after: Option<UserId> = None;
-        loop {
-            let page = guild.members(&ctx.http, None, after).await?;
-            if page.len() == 0 {
-                break;
-            }
-
-            max += page.iter().filter(|m| m.user.bot == false).count() as u64;
-            after = page.last().map(|u| u.user.id);
-        }
-
-        Ok(max)
-    }
-}
-
-///
-/// sql
-///
 impl InvitePollWithVoteCount {
     pub async fn find_by_id(id: &InvitePollId) -> Result<Option<Self>, Error> {
         let pool = POOL.get().expect("the Pool to be initialized");

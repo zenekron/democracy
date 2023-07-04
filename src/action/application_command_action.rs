@@ -16,7 +16,6 @@ use serenity::{
 use crate::{
     entities::{InvitePoll, InvitePollWithVoteCount},
     error::Error,
-    handler::Handler,
 };
 
 static DEFAULT_POLL_DURATION: Lazy<Duration> = Lazy::new(|| Duration::days(3));
@@ -55,7 +54,6 @@ impl ApplicationCommandAction {
 
     pub async fn execute(
         &self,
-        handler: &Handler,
         ctx: Context,
         interaction: &ApplicationCommandInteraction,
     ) -> Result<(), Error> {
@@ -65,13 +63,8 @@ impl ApplicationCommandAction {
                 user_id,
                 duration,
             } => {
-                let invite_poll = InvitePoll::create(
-                    &handler.pool,
-                    guild_id.to_owned(),
-                    user_id.to_owned(),
-                    *duration,
-                )
-                .await?;
+                let invite_poll =
+                    InvitePoll::create(guild_id.to_owned(), user_id.to_owned(), *duration).await?;
 
                 let invite_poll = InvitePollWithVoteCount {
                     invite_poll,

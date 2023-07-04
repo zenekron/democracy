@@ -9,7 +9,6 @@ use serenity::{
 use crate::{
     entities::{InvitePollId, InvitePollVote, InvitePollVoteSubmission, InvitePollWithVoteCount},
     error::Error,
-    handler::Handler,
 };
 
 #[derive(Debug)]
@@ -25,7 +24,6 @@ pub enum MessageComponentAction {
 impl MessageComponentAction {
     pub async fn execute(
         &self,
-        handler: &Handler,
         ctx: Context,
         interaction: &MessageComponentInteraction,
     ) -> Result<(), Error> {
@@ -36,19 +34,14 @@ impl MessageComponentAction {
                 vote,
             } => {
                 // submit the vote
-                let _invite_poll_vote_submission = InvitePollVoteSubmission::upsert(
-                    &handler.pool,
-                    invite_poll_id,
-                    user_id,
-                    vote.to_owned(),
-                )
-                .await?;
+                let _invite_poll_vote_submission =
+                    InvitePollVoteSubmission::upsert(invite_poll_id, user_id, vote.to_owned())
+                        .await?;
 
                 // load the poll
-                let invite_poll =
-                    InvitePollWithVoteCount::find_by_id(&handler.pool, invite_poll_id)
-                        .await?
-                        .ok_or_else(|| Error::InvitePollNotFound(invite_poll_id.to_owned()))?;
+                let invite_poll = InvitePollWithVoteCount::find_by_id(invite_poll_id)
+                    .await?
+                    .ok_or_else(|| Error::InvitePollNotFound(invite_poll_id.to_owned()))?;
 
                 // re-render message
                 let render = invite_poll.create_interaction_response(ctx.clone()).await?;

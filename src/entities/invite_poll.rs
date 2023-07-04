@@ -3,10 +3,10 @@ use std::{fmt::Display, str::FromStr};
 use base64::{display::Base64Display, Engine};
 use chrono::{DateTime, Duration, Utc};
 use serenity::model::prelude::{GuildId, UserId};
-use sqlx::{postgres::types::PgInterval, PgPool};
+use sqlx::postgres::types::PgInterval;
 use uuid::Uuid;
 
-use crate::error::Error;
+use crate::{error::Error, POOL};
 
 use super::InvitePollOutcome;
 
@@ -50,11 +50,11 @@ pub struct InvitePoll {
 
 impl InvitePoll {
     pub async fn create(
-        pool: &PgPool,
         guild_id: GuildId,
         user_id: UserId,
         duration: Duration,
     ) -> Result<Self, Error> {
+        let pool = POOL.get().expect("the Pool to be initialized");
         let duration = PgInterval::try_from(duration).map_err(sqlx::Error::Decode)?;
 
         let res = sqlx::query_as::<_, Self>(
@@ -73,7 +73,9 @@ impl InvitePoll {
         Ok(res)
     }
 
-    pub async fn save(&mut self, pool: &PgPool) -> Result<(), Error> {
+    pub async fn save(&mut self) -> Result<(), Error> {
+        let pool = POOL.get().expect("the Pool to be initialized");
+
         sqlx::query(
             r#"
                 UPDATE invite_poll

@@ -11,7 +11,6 @@ use serenity::{
     },
     prelude::{Context, EventHandler},
 };
-use sqlx::PgPool;
 
 use crate::{
     action::{ApplicationCommandAction, MessageComponentAction},
@@ -19,14 +18,12 @@ use crate::{
     error::Error,
 };
 
-pub struct Handler {
-    pub pool: PgPool,
-}
+pub struct Handler;
 
 impl Handler {
     async fn on_ready(&self, ctx: Context, _ready: &Ready) -> Result<(), Error> {
         ApplicationCommandAction::register(ctx.clone()).await?;
-        background_poll_closer(&self.pool, &ctx).await?;
+        background_poll_closer(&ctx).await?;
         Ok(())
     }
 
@@ -36,7 +33,7 @@ impl Handler {
         interaction: &ApplicationCommandInteraction,
     ) -> Result<(), Error> {
         let action = ApplicationCommandAction::try_from(interaction)?;
-        action.execute(self, ctx, interaction).await
+        action.execute(ctx, interaction).await
     }
 
     async fn on_message_component_interaction(
@@ -45,7 +42,7 @@ impl Handler {
         interaction: &MessageComponentInteraction,
     ) -> Result<(), Error> {
         let action = MessageComponentAction::try_from(interaction)?;
-        action.execute(self, ctx, interaction).await
+        action.execute(ctx, interaction).await
     }
 }
 
@@ -84,13 +81,13 @@ impl EventHandler for Handler {
     }
 }
 
-async fn background_poll_closer(pool: &PgPool, ctx: &Context) -> Result<(), Error> {
+async fn background_poll_closer(ctx: &Context) -> Result<(), Error> {
     let mut interval = tokio::time::interval(Duration::from_secs(60));
 
     loop {
         interval.tick().await;
 
-        let polls = InvitePollWithVoteCount::find_expired(pool).await?;
+        let polls = InvitePollWithVoteCount::find_expired().await?;
         for mut poll in polls {
             debug!("expired poll: {:?}", poll);
 
@@ -124,7 +121,7 @@ async fn background_poll_closer(pool: &PgPool, ctx: &Context) -> Result<(), Erro
                     .await?;
             }
 
-            poll.invite_poll.save(pool).await?;
+            poll.invite_poll.save().await?;
         }
     }
 }

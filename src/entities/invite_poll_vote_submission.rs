@@ -1,8 +1,7 @@
 use chrono::{DateTime, Utc};
 use serenity::model::prelude::UserId;
-use sqlx::PgPool;
 
-use crate::error::Error;
+use crate::{error::Error, POOL};
 
 use super::{InvitePollId, InvitePollVote};
 
@@ -17,11 +16,11 @@ pub struct InvitePollVoteSubmission {
 
 impl InvitePollVoteSubmission {
     pub async fn upsert(
-        pool: &PgPool,
         invite_poll_id: &InvitePollId,
         user_id: &UserId,
         vote: InvitePollVote,
     ) -> Result<Self, Error> {
+        let pool = POOL.get().expect("the Pool to be initialized");
         let res = sqlx::query_as::<_, Self>(
             r#"
                 INSERT INTO invite_poll_vote_submission(invite_poll_id, user_id, vote)

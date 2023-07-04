@@ -3,11 +3,11 @@ use serenity::{
     model::prelude::{component::ButtonStyle, UserId},
     prelude::Context,
 };
-use sqlx::PgPool;
 
 use crate::{
     error::Error,
     util::{colors, emojis, ProgressBar},
+    POOL,
 };
 
 use super::{InvitePoll, InvitePollId, InvitePollOutcome};
@@ -68,7 +68,8 @@ impl InvitePollWithVoteCount {
 /// sql
 ///
 impl InvitePollWithVoteCount {
-    pub async fn find_by_id(pool: &PgPool, id: &InvitePollId) -> Result<Option<Self>, Error> {
+    pub async fn find_by_id(id: &InvitePollId) -> Result<Option<Self>, Error> {
+        let pool = POOL.get().expect("the Pool to be initialized");
         let res = sqlx::query_as::<_, Self>(
             r#"
                 SELECT * FROM invite_poll_with_vote_count WHERE id = $1
@@ -81,7 +82,9 @@ impl InvitePollWithVoteCount {
         Ok(res)
     }
 
-    pub async fn find_expired(pool: &PgPool) -> Result<Vec<Self>, Error> {
+    pub async fn find_expired() -> Result<Vec<Self>, Error> {
+        let pool = POOL.get().expect("the Pool to be initialized");
+
         let res = sqlx::query_as::<_, Self>(
             r#"
                 SELECT * FROM invite_poll_with_vote_count

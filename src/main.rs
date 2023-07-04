@@ -4,7 +4,8 @@ extern crate log;
 use handler::Handler;
 use serenity::{prelude::GatewayIntents, Client};
 use settings::Settings;
-use sqlx::postgres::PgPoolOptions;
+use sqlx::{postgres::PgPoolOptions, PgPool};
+use tokio::sync::OnceCell;
 
 mod action;
 mod entities;
@@ -13,6 +14,8 @@ mod handler;
 mod settings;
 mod util;
 
+pub static POOL: OnceCell<PgPool> = OnceCell::const_new();
+
 #[tokio::main]
 async fn main() -> Result<(), crate::error::Error> {
     tracing_subscriber::fmt::init();
@@ -20,14 +23,16 @@ async fn main() -> Result<(), crate::error::Error> {
     let config = Settings::try_load()?;
 
     // connect to the database and apply migrations
-    let pool = PgPoolOptions::new().connect(&config.database.url).await?;
-    sqlx::migrate!().run(&pool).await?;
+    let pool = POOL
+        .get_or_try_init(|| PgPoolOptions::new().connect(&config.database.url))
+        .await?;
+    sqlx::migrate!().run(pool).await?;
 
     let mut client = Client::builder(
         config.discord.token,
         GatewayIntents::default() | GatewayIntents::GUILD_MEMBERS,
     )
-    .event_handler(Handler { pool: pool.clone() })
+    .event_handler(Handler)
     .await?;
 
     client.start().await?;

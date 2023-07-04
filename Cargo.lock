@@ -311,6 +311,7 @@ dependencies = [
  "config",
  "derive_builder",
  "log",
+ "once_cell",
  "serde",
  "serenity",
  "sqlx",

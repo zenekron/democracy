@@ -20,6 +20,7 @@ CREATE TABLE invite_poll (
     guild_id bigint NOT NULL,
     user_id bigint NOT NULL,
     status invite_poll_status NOT NULL DEFAULT 'open',
+    ends_at timestamptz NOT NULL,
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now()
 );

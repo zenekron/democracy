@@ -1,5 +1,7 @@
 use std::str::FromStr;
 
+use chrono::Duration;
+use once_cell::sync::Lazy;
 use serenity::{
     model::prelude::{
         command::{Command, CommandOptionType},
@@ -13,9 +15,15 @@ use serenity::{
 
 use crate::{entities::InvitePoll, error::Error, handler::Handler};
 
+static DEFAULT_POLL_DURATION: Lazy<Duration> = Lazy::new(|| Duration::days(3));
+
 #[derive(Debug)]
 pub enum ApplicationCommandAction {
-    CreateInvitePoll { guild_id: GuildId, user_id: UserId },
+    CreateInvitePoll {
+        guild_id: GuildId,
+        user_id: UserId,
+        duration: Duration,
+    },
 }
 
 impl ApplicationCommandAction {
@@ -28,6 +36,12 @@ impl ApplicationCommandAction {
                         .kind(CommandOptionType::String)
                         .description("The ID of the user to invite")
                         .required(true)
+                })
+                .create_option(|opt| {
+                    opt.name("duration")
+                        .kind(CommandOptionType::Integer)
+                        .description("Duration in days of the poll")
+                        .min_int_value(1)
                 })
         })
         .await?;
@@ -42,10 +56,18 @@ impl ApplicationCommandAction {
         interaction: &ApplicationCommandInteraction,
     ) -> Result<(), Error> {
         match self {
-            ApplicationCommandAction::CreateInvitePoll { guild_id, user_id } => {
-                let invite_poll =
-                    InvitePoll::create(&handler.pool, guild_id.to_owned(), user_id.to_owned())
-                        .await?;
+            ApplicationCommandAction::CreateInvitePoll {
+                guild_id,
+                user_id,
+                duration,
+            } => {
+                let invite_poll = InvitePoll::create(
+                    &handler.pool,
+                    guild_id.to_owned(),
+                    user_id.to_owned(),
+                    *duration,
+                )
+                .await?;
 
                 let render = invite_poll
                     .create_interaction_response(ctx.clone(), &handler.pool)
@@ -69,6 +91,7 @@ impl TryFrom<&ApplicationCommandInteraction> for ApplicationCommandAction {
         match interaction.data.name.as_str() {
             "invite" => {
                 let mut user_id: Option<UserId> = None;
+                let mut duration: Option<Duration> = None;
 
                 for opt in &interaction.data.options {
                     match opt.name.as_str() {
@@ -79,6 +102,14 @@ impl TryFrom<&ApplicationCommandInteraction> for ApplicationCommandAction {
                                 .and_then(|val| val.as_str())
                                 .map(FromStr::from_str)
                                 .transpose()?;
+                        }
+
+                        "duration" => {
+                            duration = opt
+                                .value
+                                .as_ref()
+                                .and_then(|val| val.as_i64())
+                                .map(Duration::days);
                         }
 
                         other => {
@@ -95,7 +126,11 @@ impl TryFrom<&ApplicationCommandInteraction> for ApplicationCommandAction {
                     .ok_or_else(|| Error::GuildCommandNotInGuild(interaction.data.name.clone()))?;
 
                 match user_id {
-                    Some(user_id) => Ok(Self::CreateInvitePoll { guild_id, user_id }),
+                    Some(user_id) => Ok(Self::CreateInvitePoll {
+                        guild_id,
+                        user_id,
+                        duration: duration.unwrap_or(*DEFAULT_POLL_DURATION),
+                    }),
                     None => Err(Error::MissingCommandOption(
                         interaction.data.name.clone(),
                         "user_id".to_owned(),

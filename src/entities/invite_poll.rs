@@ -1,11 +1,11 @@
 use base64::Engine;
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, Duration, Utc};
 use serenity::{
     builder::CreateInteractionResponse,
     model::prelude::{component::ButtonStyle, GuildId, UserId},
     prelude::Context,
 };
-use sqlx::PgPool;
+use sqlx::{postgres::types::PgInterval, PgPool};
 use uuid::Uuid;
 
 use crate::{
@@ -23,27 +23,37 @@ pub struct InvitePoll {
     guild_id: i64,
     user_id: i64,
     pub status: InvitePollStatus,
+    pub ends_at: DateTime<Utc>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
 
 impl InvitePoll {
-    pub async fn create(pool: &PgPool, guild_id: GuildId, user_id: UserId) -> Result<Self, Error> {
+    pub async fn create(
+        pool: &PgPool,
+        guild_id: GuildId,
+        user_id: UserId,
+        duration: Duration,
+    ) -> Result<Self, Error> {
+        let duration = PgInterval::try_from(duration).map_err(sqlx::Error::Decode)?;
+
         let res = sqlx::query_as!(
             Self,
             r#"
-                INSERT INTO invite_poll(guild_id, user_id)
-                VALUES ($1, $2)
+                INSERT INTO invite_poll(guild_id, user_id, ends_at)
+                VALUES ($1, $2, now() + $3)
                 RETURNING
                     id, guild_id AS "guild_id: _",
                     user_id AS "user_id: _",
                     status AS "status: _",
+                    ends_at,
                     created_at,
                     updated_at
                 ;
             "#,
             guild_id.0 as i64,
-            user_id.0 as i64
+            user_id.0 as i64,
+            duration
         )
         .fetch_one(pool)
         .await?;
@@ -59,6 +69,7 @@ impl InvitePoll {
                     id, guild_id AS "guild_id: _",
                     user_id AS "user_id: _",
                     status AS "status: _",
+                    ends_at,
                     created_at,
                     updated_at
                 FROM invite_poll

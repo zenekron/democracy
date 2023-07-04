@@ -1,5 +1,6 @@
 use serenity::model::prelude::UserIdParseError;
-use uuid::Uuid;
+
+use crate::entities::InvitePollId;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -16,7 +17,7 @@ pub enum Error {
     GuildCommandNotInGuild(String),
 
     #[error("could not find an invite poll with id `{0}`")]
-    InvitePollNotFound(Uuid),
+    InvitePollNotFound(InvitePollId),
 
     #[error("could not extract a valid poll id")]
     InvitePollIdNotFound,

@@ -1,4 +1,6 @@
-use base64::Engine;
+use std::{fmt::Display, str::FromStr};
+
+use base64::{display::Base64Display, Engine};
 use chrono::{DateTime, Duration, Utc};
 use serenity::model::prelude::{GuildId, UserId};
 use sqlx::{postgres::types::PgInterval, PgPool};
@@ -10,9 +12,34 @@ use super::InvitePollOutcome;
 
 static BASE64: base64::engine::GeneralPurpose = base64::engine::general_purpose::STANDARD_NO_PAD;
 
+#[derive(Clone, Debug, sqlx::Type)]
+#[sqlx(transparent)]
+pub struct InvitePollId(pub Uuid);
+
+impl Display for InvitePollId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        Base64Display::new(self.0.as_bytes(), &BASE64).fmt(f)
+    }
+}
+
+impl FromStr for InvitePollId {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let buf = BASE64
+            .decode(s)
+            .map_err(|err| Error::InvitePollIdInvalid(s.to_owned(), err.into()))?;
+
+        let id = Uuid::from_slice(&buf)
+            .map_err(|err| Error::InvitePollIdInvalid(s.to_owned(), err.into()))?;
+
+        Ok(Self(id))
+    }
+}
+
 #[derive(Debug, sqlx::FromRow)]
 pub struct InvitePoll {
-    pub id: Uuid,
+    pub id: InvitePollId,
     guild_id: i64,
     user_id: i64,
     pub outcome: Option<InvitePollOutcome>,
@@ -30,25 +57,16 @@ impl InvitePoll {
     ) -> Result<Self, Error> {
         let duration = PgInterval::try_from(duration).map_err(sqlx::Error::Decode)?;
 
-        let res = sqlx::query_as!(
-            Self,
+        let res = sqlx::query_as::<_, Self>(
             r#"
                 INSERT INTO invite_poll(guild_id, user_id, ends_at)
                 VALUES ($1, $2, now() + $3)
-                RETURNING
-                    id,
-                    guild_id AS "guild_id: _",
-                    user_id AS "user_id: _",
-                    outcome AS "outcome: _",
-                    ends_at,
-                    created_at,
-                    updated_at
-                ;
+                RETURNING *;
             "#,
-            guild_id.0 as i64,
-            user_id.0 as i64,
-            duration
         )
+        .bind(guild_id.0 as i64)
+        .bind(user_id.0 as i64)
+        .bind(duration)
         .fetch_one(pool)
         .await?;
 
@@ -64,32 +82,11 @@ impl InvitePoll {
             "#,
         )
         .bind(self.outcome)
-        .bind(self.id)
+        .bind(&self.id)
         .execute(pool)
         .await?;
 
         Ok(())
-    }
-
-    pub fn decode_id(id: &str) -> Result<Uuid, Error> {
-        let id = id
-            .strip_prefix('`')
-            .unwrap_or(id)
-            .strip_suffix('`')
-            .unwrap_or(id);
-
-        let buf = BASE64
-            .decode(id)
-            .map_err(|err| Error::InvitePollIdInvalid(id.to_owned(), err.into()))?;
-
-        let id = Uuid::from_slice(buf.as_slice())
-            .map_err(|err| Error::InvitePollIdInvalid(id.to_owned(), err.into()))?;
-
-        Ok(id)
-    }
-
-    pub fn encoded_id(&self) -> String {
-        BASE64.encode(self.id)
     }
 
     pub fn guild_id(&self) -> GuildId {

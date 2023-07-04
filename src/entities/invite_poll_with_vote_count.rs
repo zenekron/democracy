@@ -4,14 +4,13 @@ use serenity::{
     prelude::Context,
 };
 use sqlx::PgPool;
-use uuid::Uuid;
 
 use crate::{
     error::Error,
     util::{colors, emojis, ProgressBar},
 };
 
-use super::{InvitePoll, InvitePollOutcome};
+use super::{InvitePoll, InvitePollId, InvitePollOutcome};
 
 const VOTE_THRESHOLD: f32 = 0.8;
 
@@ -69,7 +68,7 @@ impl InvitePollWithVoteCount {
 /// sql
 ///
 impl InvitePollWithVoteCount {
-    pub async fn find_by_id(pool: &PgPool, id: &Uuid) -> Result<Option<Self>, Error> {
+    pub async fn find_by_id(pool: &PgPool, id: &InvitePollId) -> Result<Option<Self>, Error> {
         let res = sqlx::query_as::<_, Self>(
             r#"
                 SELECT * FROM invite_poll_with_vote_count WHERE id = $1
@@ -163,11 +162,7 @@ impl InvitePollWithVoteCount {
                         })
                         .title("Invite Poll")
                         .thumbnail(user.face())
-                        .field(
-                            "Poll Id",
-                            ["`", self.invite_poll.encoded_id().as_str(), "`"].concat(),
-                            true,
-                        )
+                        .field("Poll Id", format!("`{}`", self.invite_poll.id), true)
                         .field(
                             "Status",
                             match self.invite_poll.outcome {

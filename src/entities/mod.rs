@@ -2,9 +2,9 @@ mod invite_poll;
 mod invite_poll_vote_submission;
 mod invite_poll_with_vote_count;
 
-pub use invite_poll::InvitePoll;
-pub use invite_poll_vote_submission::InvitePollVoteSubmission;
-pub use invite_poll_with_vote_count::InvitePollWithVoteCount;
+pub use invite_poll::*;
+pub use invite_poll_vote_submission::*;
+pub use invite_poll_with_vote_count::*;
 
 #[derive(Clone, Copy, Debug, sqlx::Type)]
 #[sqlx(type_name = "invite_poll_outcome", rename_all = "lowercase")]

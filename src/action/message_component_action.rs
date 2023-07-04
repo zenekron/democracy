@@ -5,10 +5,9 @@ use serenity::{
     },
     prelude::Context,
 };
-use uuid::Uuid;
 
 use crate::{
-    entities::{InvitePoll, InvitePollVote, InvitePollVoteSubmission, InvitePollWithVoteCount},
+    entities::{InvitePollId, InvitePollVote, InvitePollVoteSubmission, InvitePollWithVoteCount},
     error::Error,
     handler::Handler,
 };
@@ -16,7 +15,7 @@ use crate::{
 #[derive(Debug)]
 pub enum MessageComponentAction {
     SubmitInvitePollVote {
-        invite_poll_id: Uuid,
+        invite_poll_id: InvitePollId,
         /// Submitter's Id
         user_id: UserId,
         vote: InvitePollVote,
@@ -39,7 +38,7 @@ impl MessageComponentAction {
                 // submit the vote
                 let _invite_poll_vote_submission = InvitePollVoteSubmission::upsert(
                     &handler.pool,
-                    invite_poll_id.to_owned(),
+                    invite_poll_id,
                     user_id,
                     vote.to_owned(),
                 )
@@ -79,7 +78,13 @@ impl TryFrom<&MessageComponentInteraction> for MessageComponentAction {
                     .find(|field| field.name == "Poll Id")
                     .map(|field| field.value.as_str())
                     .ok_or(Error::InvitePollIdNotFound)
-                    .and_then(InvitePoll::decode_id)?;
+                    .and_then(|s| {
+                        s.strip_prefix('`')
+                            .unwrap_or(s)
+                            .strip_suffix('`')
+                            .unwrap_or(s)
+                            .parse::<InvitePollId>()
+                    })?;
                 let user_id = interaction.user.id;
 
                 Ok(Self::SubmitInvitePollVote {
@@ -97,7 +102,13 @@ impl TryFrom<&MessageComponentInteraction> for MessageComponentAction {
                     .find(|field| field.name == "Poll Id")
                     .map(|field| field.value.as_str())
                     .ok_or(Error::InvitePollIdNotFound)
-                    .and_then(InvitePoll::decode_id)?;
+                    .and_then(|s| {
+                        s.strip_prefix('`')
+                            .unwrap_or(s)
+                            .strip_suffix('`')
+                            .unwrap_or(s)
+                            .parse::<InvitePollId>()
+                    })?;
                 let user_id = interaction.user.id;
 
                 Ok(Self::SubmitInvitePollVote {
@@ -115,7 +126,13 @@ impl TryFrom<&MessageComponentInteraction> for MessageComponentAction {
                     .find(|field| field.name == "Poll Id")
                     .map(|field| field.value.as_str())
                     .ok_or(Error::InvitePollIdNotFound)
-                    .and_then(InvitePoll::decode_id)?;
+                    .and_then(|s| {
+                        s.strip_prefix('`')
+                            .unwrap_or(s)
+                            .strip_suffix('`')
+                            .unwrap_or(s)
+                            .parse::<InvitePollId>()
+                    })?;
                 let user_id = interaction.user.id;
 
                 Ok(Self::SubmitInvitePollVote {

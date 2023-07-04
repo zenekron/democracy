@@ -64,7 +64,7 @@ impl ApplicationCommandAction {
                 duration,
             } => {
                 let invite_poll =
-                    InvitePoll::create(guild_id.to_owned(), user_id.to_owned(), *duration).await?;
+                    InvitePoll::new(guild_id.to_owned(), user_id.to_owned(), *duration).await?;
 
                 let invite_poll = InvitePollWithVoteCount {
                     invite_poll,

@@ -121,7 +121,7 @@ async fn background_poll_closer(ctx: &Context) -> Result<(), Error> {
                     .await?;
             }
 
-            poll.invite_poll.save().await?;
+            poll.invite_poll.close(outcome).await?;
         }
     }
 }

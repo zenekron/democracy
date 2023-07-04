@@ -49,7 +49,7 @@ pub struct InvitePoll {
 }
 
 impl InvitePoll {
-    pub async fn create(
+    pub async fn new(
         guild_id: GuildId,
         user_id: UserId,
         duration: Duration,
@@ -73,29 +73,32 @@ impl InvitePoll {
         Ok(res)
     }
 
-    pub async fn save(&mut self) -> Result<(), Error> {
-        let pool = POOL.get().expect("the Pool to be initialized");
-
-        sqlx::query(
-            r#"
-                UPDATE invite_poll
-                SET outcome = $1
-                WHERE id = $2
-            "#,
-        )
-        .bind(self.outcome)
-        .bind(&self.id)
-        .execute(pool)
-        .await?;
-
-        Ok(())
-    }
-
     pub fn guild_id(&self) -> GuildId {
         GuildId(self.guild_id as u64)
     }
 
     pub fn user_id(&self) -> UserId {
         UserId(self.user_id as u64)
+    }
+
+    pub async fn close(&mut self, outcome: InvitePollOutcome) -> Result<(), Error> {
+        let pool = POOL.get().expect("the Pool to be initialized");
+
+        let res = sqlx::query_as::<_, Self>(
+            r#"
+                UPDATE invite_poll
+                SET outcome = $1
+                WHERE id = $2
+                RETURNING *;
+            "#,
+        )
+        .bind(outcome)
+        .bind(&self.id)
+        .fetch_one(pool)
+        .await?;
+
+        let _ = std::mem::replace(self, res);
+
+        Ok(())
     }
 }

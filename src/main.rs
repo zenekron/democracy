@@ -1,10 +1,15 @@
 #[macro_use]
 extern crate log;
 
+use std::time::Duration;
+
+use entities::InvitePoll;
 use handler::Handler;
 use serenity::{prelude::GatewayIntents, Client};
 use settings::Settings;
-use sqlx::postgres::PgPoolOptions;
+use sqlx::{postgres::PgPoolOptions, PgPool};
+
+use crate::error::Error;
 
 mod action;
 mod entities;
@@ -27,10 +32,20 @@ async fn main() -> Result<(), crate::error::Error> {
         config.discord.token,
         GatewayIntents::default() | GatewayIntents::GUILD_MEMBERS,
     )
-    .event_handler(Handler { pool })
+    .event_handler(Handler { pool: pool.clone() })
     .await?;
 
-    client.start().await?;
+    let (bres, cres) = tokio::join!(background_poll_closer(&pool), client.start());
+    bres.and(cres.map_err(Into::into))
+}
 
-    Ok(())
+async fn background_poll_closer(pool: &PgPool) -> Result<(), Error> {
+    let mut interval = tokio::time::interval(Duration::from_secs(60));
+
+    loop {
+        interval.tick().await;
+
+        let polls = InvitePoll::find_pending_with_count(pool).await?;
+        debug!("polls: {:?}", polls);
+    }
 }

@@ -83,6 +83,21 @@ impl InvitePoll {
         Ok(res)
     }
 
+    pub async fn find_pending_with_count(pool: &PgPool) -> Result<Vec<InvitePollWithCount>, Error> {
+        let res = sqlx::query_as::<_, InvitePollWithCount>(
+            r#"
+                SELECT IP.*, IPVC.*
+                FROM invite_poll IP
+                    INNER JOIN invite_poll_vote_count IPVC ON IP.id = IPVC.invite_poll_id
+                WHERE IP.status = 'open' AND IP.ends_at < now();
+            "#,
+        )
+        .fetch_all(pool)
+        .await?;
+
+        Ok(res)
+    }
+
     pub fn decode_id(id: &str) -> Result<Uuid, Error> {
         let id = id
             .strip_prefix('`')
@@ -216,4 +231,13 @@ impl InvitePoll {
             })
         }))
     }
+}
+
+#[derive(Debug, sqlx::FromRow)]
+pub struct InvitePollWithCount {
+    #[sqlx(flatten)]
+    pub invite_poll: InvitePoll,
+
+    #[sqlx(flatten)]
+    pub count: InvitePollVoteCount,
 }

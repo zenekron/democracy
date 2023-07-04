@@ -66,7 +66,12 @@ pub mod colors {
 }
 
 pub mod emojis {
-    pub static LARGE_GREEN_CIRCLE: char = '\u{1F7E2}'; // https://emojipedia.org/large-green-circle/
-    pub static LARGE_RED_CIRCLE: char = '\u{1F534}'; // https://emojipedia.org/large-red-circle/
-    pub static LARGE_YELLOW_CIRCLE: char = '\u{1F7E1}'; // https://emojipedia.org/large-yellow-circle/
+    #![allow(dead_code)]
+
+    // https://emojipedia.org/
+    pub static CHECK_MARK: &str = "\u{2714}\u{FE0F}";
+    pub static CROSS_MARK: &str = "\u{274C}";
+    pub static LARGE_GREEN_CIRCLE: &str = "\u{1F7E2}";
+    pub static LARGE_RED_CIRCLE: &str = "\u{1F534}";
+    pub static LARGE_YELLOW_CIRCLE: &str = "\u{1F7E1}";
 }

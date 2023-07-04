@@ -76,43 +76,53 @@ impl InvitePollWithVoteCount {
                 data.embed(|embed| {
                     embed
                         .color(match self.invite_poll.outcome {
-                            Some(InvitePollOutcome::Allow) => colors::DISCORD_GREEN,
-                            Some(InvitePollOutcome::Deny) => colors::DISCORD_RED,
-                            None => colors::DISCORD_BLURPLE,
+                            Some(_) => colors::DISCORD_RED,
+                            None => colors::DISCORD_GREEN,
                         })
                         .title("Invite Poll")
-                        .thumbnail(user.face())
+                        .thumbnail(user.face());
+
+                    // row 1
+                    embed
                         .field("Poll Id", format!("`{}`", self.invite_poll.id), true)
+                        .field("User", &user.name, true)
                         .field(
                             "Status",
                             match self.invite_poll.outcome {
-                                Some(_) => emojis::LARGE_RED_CIRCLE.to_string() + " Closed",
-                                None => emojis::LARGE_GREEN_CIRCLE.to_string() + " Open",
+                                Some(InvitePollOutcome::Allow) => {
+                                    [emojis::CHECK_MARK, " Allowed"].concat()
+                                }
+                                Some(InvitePollOutcome::Deny) => {
+                                    [emojis::CROSS_MARK, " Denied"].concat()
+                                }
+                                None => [emojis::LARGE_GREEN_CIRCLE, " Pending"].concat(),
                             },
                             true,
-                        )
-                        .field("", "", true)
-                        .field("User", &user.name, true)
-                        .field(
-                            "Votes",
-                            {
-                                let mut bar = ProgressBar::builder();
-                                bar.max((self.yes_count + self.maybe_count + self.no_count) as u64)
-                                    .with_count(true)
-                                    .with_percentage(true);
+                        );
 
-                                format!(
-                                    "{} {}\n{} {}\n{} {}",
-                                    emojis::LARGE_GREEN_CIRCLE,
-                                    bar.value(self.yes_count as u64).build().unwrap(),
-                                    emojis::LARGE_YELLOW_CIRCLE,
-                                    bar.value(self.maybe_count as u64).build().unwrap(),
-                                    emojis::LARGE_RED_CIRCLE,
-                                    bar.value(self.no_count as u64).build().unwrap(),
-                                )
-                            },
-                            false,
-                        )
+                    // row 2
+                    embed.field(
+                        "Votes",
+                        {
+                            let mut bar = ProgressBar::builder();
+                            bar.max((self.yes_count + self.maybe_count + self.no_count) as u64)
+                                .with_count(true)
+                                .with_percentage(true);
+
+                            format!(
+                                "{} {}\n{} {}\n{} {}",
+                                emojis::LARGE_GREEN_CIRCLE,
+                                bar.value(self.yes_count as u64).build().unwrap(),
+                                emojis::LARGE_YELLOW_CIRCLE,
+                                bar.value(self.maybe_count as u64).build().unwrap(),
+                                emojis::LARGE_RED_CIRCLE,
+                                bar.value(self.no_count as u64).build().unwrap(),
+                            )
+                        },
+                        false,
+                    );
+
+                    embed
                 })
                 .components(|component| match self.invite_poll.outcome {
                     Some(_) => component,

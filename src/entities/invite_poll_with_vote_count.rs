@@ -18,7 +18,6 @@ pub struct InvitePollWithVoteCount {
     pub invite_poll: InvitePoll,
 
     pub yes_count: i64,
-    pub maybe_count: i64,
     pub no_count: i64,
 }
 
@@ -123,16 +122,14 @@ impl InvitePollWithVoteCount {
                 "Votes",
                 {
                     let mut bar = ProgressBar::builder();
-                    bar.max(self.yes_count + self.maybe_count + self.no_count)
+                    bar.max(self.yes_count + self.no_count)
                         .with_count(true)
                         .with_percentage(true);
 
                     format!(
-                        "{} {}\n{} {}\n{} {}",
+                        "{} {}\n{} {}",
                         emojis::LARGE_GREEN_CIRCLE,
                         bar.value(self.yes_count).build().unwrap(),
-                        emojis::LARGE_YELLOW_CIRCLE,
-                        bar.value(self.maybe_count).build().unwrap(),
                         emojis::LARGE_RED_CIRCLE,
                         bar.value(self.no_count).build().unwrap(),
                     )
@@ -152,11 +149,6 @@ impl InvitePollWithVoteCount {
                         btn.custom_id("democracy.invite-poll-vote.yes")
                             .label("Yes")
                             .style(ButtonStyle::Success)
-                    })
-                    .create_button(|btn| {
-                        btn.custom_id("democracy.invite-poll-vote.maybe")
-                            .label("Maybe")
-                            .style(ButtonStyle::Primary)
                     })
                     .create_button(|btn| {
                         btn.custom_id("democracy.invite-poll-vote.no")

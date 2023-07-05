@@ -1,6 +1,6 @@
 -- vim: ft=pgsql
 
-CREATE TYPE invite_poll_vote AS ENUM ('yes', 'maybe', 'no');
+CREATE TYPE invite_poll_vote AS ENUM ('yes', 'no');
 
 CREATE TABLE invite_poll_vote_submission (
     invite_poll_id uuid NOT NULL REFERENCES invite_poll (id),

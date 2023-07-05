@@ -76,16 +76,6 @@ impl TryFrom<&MessageComponentInteraction> for MessageComponentAction {
                     vote: InvitePollVote::Yes,
                 })
             }
-            "democracy.invite-poll-vote.maybe" => {
-                let invite_poll_id =
-                    InvitePollWithVoteCount::extract_poll_id_from_message(&interaction.message)?;
-
-                Ok(Self::SubmitInvitePollVote {
-                    invite_poll_id,
-                    user_id: interaction.user.id.into(),
-                    vote: InvitePollVote::Maybe,
-                })
-            }
             "democracy.invite-poll-vote.no" => {
                 let invite_poll_id =
                     InvitePollWithVoteCount::extract_poll_id_from_message(&interaction.message)?;

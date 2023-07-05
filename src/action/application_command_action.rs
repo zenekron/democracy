@@ -67,7 +67,7 @@ impl ApplicationCommandAction {
                 let mut transaction = pool.begin().await?;
 
                 let invite_poll = InvitePoll::create(
-                    &mut transaction,
+                    &mut *transaction,
                     guild_id.to_owned(),
                     user_id.to_owned(),
                     *duration,
@@ -94,7 +94,7 @@ impl ApplicationCommandAction {
                 let message = interaction.get_interaction_response(&ctx.http).await?;
                 invite_poll
                     .invite_poll
-                    .update_message(&mut transaction, &message)
+                    .update_message(&mut *transaction, &message)
                     .await?;
 
                 transaction.commit().await?;

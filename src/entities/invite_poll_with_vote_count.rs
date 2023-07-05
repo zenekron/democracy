@@ -27,7 +27,9 @@ impl InvitePollWithVoteCount {
         let pool = POOL.get().expect("the Pool to be initialized");
         let res = sqlx::query_as::<_, Self>(
             r#"
-                SELECT * FROM invite_poll_with_vote_count WHERE id = $1
+                SELECT *
+                FROM invite_poll_with_vote_count
+                WHERE id = $1;
             "#,
         )
         .bind(id)
@@ -42,7 +44,8 @@ impl InvitePollWithVoteCount {
 
         let res = sqlx::query_as::<_, Self>(
             r#"
-                SELECT * FROM invite_poll_with_vote_count
+                SELECT *
+                FROM invite_poll_with_vote_count
                 WHERE outcome IS NULL AND ends_at <= now();
             "#,
         )

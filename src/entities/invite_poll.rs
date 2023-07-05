@@ -68,7 +68,7 @@ impl InvitePoll {
 
         let res = sqlx::query_as::<_, Self>(
             r#"
-                INSERT INTO invite_poll(guild_id, user_id, ends_at)
+                INSERT INTO invite_poll (guild_id, user_id, ends_at)
                 VALUES ($1, $2, now() + $3)
                 RETURNING *;
             "#,
@@ -92,14 +92,10 @@ impl InvitePoll {
     {
         let res = sqlx::query_as::<_, Self>(
             r#"
-            UPDATE
-                invite_poll
-            SET
-                channel_id = $2,
-                message_id = $3
-            WHERE
-                id = $1
-            RETURNING *;
+                UPDATE invite_poll
+                SET channel_id = $2, message_id = $3
+                WHERE id = $1
+                RETURNING *;
             "#,
         )
         .bind(&self.id)

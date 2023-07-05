@@ -22,7 +22,7 @@ impl InvitePollVoteSubmission {
         let pool = POOL.get().expect("the Pool to be initialized");
         let res = sqlx::query_as::<_, Self>(
             r#"
-                INSERT INTO invite_poll_vote_submission(invite_poll_id, user_id, vote)
+                INSERT INTO invite_poll_vote_submission (invite_poll_id, user_id, vote)
                 VALUES ($1, $2, $3)
                 ON CONFLICT (invite_poll_id, user_id) DO UPDATE SET vote = EXCLUDED.vote
                 RETURNING *;

@@ -1,23 +1,10 @@
 -- vim: ft=pgsql
 
--- Trigger function that updates the `updated_at` attribute of a record to the
--- current time.
-CREATE FUNCTION update_updated_at()
-RETURNS trigger
-LANGUAGE plpgsql
-AS $$
-	BEGIN
-		NEW.updated_at = now();
-		RETURN NEW;
-	END;
-$$;
-
-
 CREATE TYPE invite_poll_outcome AS ENUM ('allow', 'deny');
 
 CREATE TABLE invite_poll (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    guild_id varchar NOT NULL,
+    guild_id varchar NOT NULL REFERENCES guild (id),
     user_id varchar NOT NULL,
     channel_id varchar,
     message_id varchar,

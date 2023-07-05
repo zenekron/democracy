@@ -1,10 +1,12 @@
 use serenity::{
-    builder::CreateInteractionResponse, model::prelude::component::ButtonStyle, prelude::Context,
+    builder::{CreateComponents, CreateEmbed},
+    model::prelude::component::ButtonStyle,
+    prelude::Context,
 };
 
 use crate::{
     error::Error,
-    util::{colors, emojis, ProgressBar},
+    util::{colors, emojis, serenity::MessageRenderer, ProgressBar},
     POOL,
 };
 
@@ -55,14 +57,14 @@ impl InvitePollWithVoteCount {
 /// Discord
 ///
 impl InvitePollWithVoteCount {
-    pub async fn create_interaction_response(
+    pub async fn create_renderer(
         &self,
         ctx: Context,
     ) -> Result<
         Box<
-            dyn for<'a, 'b> FnOnce(
-                    &'a mut CreateInteractionResponse<'b>,
-                ) -> &'a mut CreateInteractionResponse<'b>
+            dyn for<'m, 'a, 'b> FnOnce(
+                    &'m mut MessageRenderer<'a, 'b>,
+                ) -> &'m mut MessageRenderer<'a, 'b>
                 + Send
                 + Sync
                 + '_,
@@ -71,80 +73,83 @@ impl InvitePollWithVoteCount {
     > {
         let user = self.invite_poll.user_id().to_user(&ctx.http).await?;
 
-        Ok(Box::new(move |resp| {
-            resp.interaction_response_data(|data| {
-                data.embed(|embed| {
-                    embed
-                        .color(match self.invite_poll.outcome {
-                            Some(_) => colors::DISCORD_RED,
-                            None => colors::DISCORD_GREEN,
-                        })
-                        .title("Invite Poll")
-                        .thumbnail(user.face());
+        let embeds = vec![{
+            let mut embed = CreateEmbed::default();
 
-                    // row 1
-                    embed
-                        .field("Poll Id", format!("`{}`", self.invite_poll.id), true)
-                        .field("User", &user.name, true)
-                        .field(
-                            "Status",
-                            match self.invite_poll.outcome {
-                                Some(InvitePollOutcome::Allow) => {
-                                    [emojis::CHECK_MARK, " Allowed"].concat()
-                                }
-                                Some(InvitePollOutcome::Deny) => {
-                                    [emojis::CROSS_MARK, " Denied"].concat()
-                                }
-                                None => [emojis::LARGE_GREEN_CIRCLE, " Pending"].concat(),
-                            },
-                            true,
-                        );
-
-                    // row 2
-                    embed.field(
-                        "Votes",
-                        {
-                            let mut bar = ProgressBar::builder();
-                            bar.max((self.yes_count + self.maybe_count + self.no_count) as u64)
-                                .with_count(true)
-                                .with_percentage(true);
-
-                            format!(
-                                "{} {}\n{} {}\n{} {}",
-                                emojis::LARGE_GREEN_CIRCLE,
-                                bar.value(self.yes_count as u64).build().unwrap(),
-                                emojis::LARGE_YELLOW_CIRCLE,
-                                bar.value(self.maybe_count as u64).build().unwrap(),
-                                emojis::LARGE_RED_CIRCLE,
-                                bar.value(self.no_count as u64).build().unwrap(),
-                            )
-                        },
-                        false,
-                    );
-
-                    embed
+            embed
+                .color(match self.invite_poll.outcome {
+                    Some(_) => colors::DISCORD_RED,
+                    None => colors::DISCORD_GREEN,
                 })
-                .components(|component| match self.invite_poll.outcome {
-                    Some(_) => component,
-                    None => component.create_action_row(|row| {
-                        row.create_button(|btn| {
-                            btn.custom_id("democracy.invite-poll-vote.yes")
-                                .label("Yes")
-                                .style(ButtonStyle::Success)
-                        })
-                        .create_button(|btn| {
-                            btn.custom_id("democracy.invite-poll-vote.maybe")
-                                .label("Maybe")
-                                .style(ButtonStyle::Primary)
-                        })
-                        .create_button(|btn| {
-                            btn.custom_id("democracy.invite-poll-vote.no")
-                                .label("No")
-                                .style(ButtonStyle::Danger)
-                        })
-                    }),
-                })
-            })
+                .title("Invite Poll")
+                .thumbnail(user.face());
+
+            // row 1
+            embed
+                .field("Poll Id", format!("`{}`", self.invite_poll.id), true)
+                .field("User", &user.name, true)
+                .field(
+                    "Status",
+                    match self.invite_poll.outcome {
+                        Some(InvitePollOutcome::Allow) => [emojis::CHECK_MARK, " Allowed"].concat(),
+                        Some(InvitePollOutcome::Deny) => [emojis::CROSS_MARK, " Denied"].concat(),
+                        None => [emojis::LARGE_GREEN_CIRCLE, " Pending"].concat(),
+                    },
+                    true,
+                );
+
+            // row 2
+            embed.field(
+                "Votes",
+                {
+                    let mut bar = ProgressBar::builder();
+                    bar.max((self.yes_count + self.maybe_count + self.no_count) as u64)
+                        .with_count(true)
+                        .with_percentage(true);
+
+                    format!(
+                        "{} {}\n{} {}\n{} {}",
+                        emojis::LARGE_GREEN_CIRCLE,
+                        bar.value(self.yes_count as u64).build().unwrap(),
+                        emojis::LARGE_YELLOW_CIRCLE,
+                        bar.value(self.maybe_count as u64).build().unwrap(),
+                        emojis::LARGE_RED_CIRCLE,
+                        bar.value(self.no_count as u64).build().unwrap(),
+                    )
+                },
+                false,
+            );
+
+            embed
+        }];
+
+        let components = match self.invite_poll.outcome {
+            Some(_) => CreateComponents::default(),
+            None => {
+                let mut components = CreateComponents::default();
+                components.create_action_row(|row| {
+                    row.create_button(|btn| {
+                        btn.custom_id("democracy.invite-poll-vote.yes")
+                            .label("Yes")
+                            .style(ButtonStyle::Success)
+                    })
+                    .create_button(|btn| {
+                        btn.custom_id("democracy.invite-poll-vote.maybe")
+                            .label("Maybe")
+                            .style(ButtonStyle::Primary)
+                    })
+                    .create_button(|btn| {
+                        btn.custom_id("democracy.invite-poll-vote.no")
+                            .label("No")
+                            .style(ButtonStyle::Danger)
+                    })
+                });
+                components
+            }
+        };
+
+        Ok(Box::new(move |message| {
+            message.set_embeds(embeds).set_components(components)
         }))
     }
 }

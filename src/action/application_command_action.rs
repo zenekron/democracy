@@ -16,6 +16,7 @@ use serenity::{
 use crate::{
     entities::{InvitePoll, InvitePollWithVoteCount},
     error::Error,
+    POOL,
 };
 
 static DEFAULT_POLL_DURATION: Lazy<Duration> = Lazy::new(|| Duration::days(3));
@@ -62,22 +63,41 @@ impl ApplicationCommandAction {
                 user_id,
                 duration,
             } => {
-                let invite_poll =
-                    InvitePoll::new(guild_id.to_owned(), user_id.to_owned(), *duration).await?;
+                let pool = POOL.get().expect("the Pool to be initialized");
+                let mut transaction = pool.begin().await?;
 
-                let invite_poll = InvitePollWithVoteCount {
+                let invite_poll = InvitePoll::create(
+                    &mut transaction,
+                    guild_id.to_owned(),
+                    user_id.to_owned(),
+                    *duration,
+                )
+                .await?;
+
+                let mut invite_poll = InvitePollWithVoteCount {
                     invite_poll,
                     yes_count: 0,
                     maybe_count: 0,
                     no_count: 0,
                 };
 
-                let render = invite_poll.create_interaction_response(ctx.clone()).await?;
+                let render = invite_poll.create_renderer(ctx.clone()).await?;
                 interaction
                     .create_interaction_response(&ctx.http, |resp| {
-                        render(resp).kind(InteractionResponseType::ChannelMessageWithSource)
+                        resp.kind(InteractionResponseType::ChannelMessageWithSource)
+                            .interaction_response_data(|data| {
+                                render(&mut data.into());
+                                data
+                            })
                     })
                     .await?;
+                let message = interaction.get_interaction_response(&ctx.http).await?;
+                invite_poll
+                    .invite_poll
+                    .update_message(&mut transaction, &message)
+                    .await?;
+
+                transaction.commit().await?;
 
                 Ok(())
             }

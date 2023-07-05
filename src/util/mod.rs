@@ -1,5 +1,7 @@
 use std::fmt::{Display, Write};
 
+pub mod serenity;
+
 #[derive(Debug, derive_builder::Builder)]
 pub struct ProgressBar {
     value: u64,

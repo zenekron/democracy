@@ -2,8 +2,8 @@ use std::{fmt::Display, str::FromStr};
 
 use base64::{display::Base64Display, Engine};
 use chrono::{DateTime, Duration, Utc};
-use serenity::model::prelude::{GuildId, UserId};
-use sqlx::postgres::types::PgInterval;
+use serenity::model::prelude::{ChannelId, GuildId, Message, MessageId, UserId};
+use sqlx::{postgres::types::PgInterval, PgExecutor};
 use uuid::Uuid;
 
 use crate::{error::Error, POOL};
@@ -42,6 +42,8 @@ pub struct InvitePoll {
     pub id: InvitePollId,
     guild_id: i64,
     user_id: i64,
+    channel_id: Option<i64>,
+    message_id: Option<i64>,
     pub outcome: Option<InvitePollOutcome>,
     pub ends_at: DateTime<Utc>,
     pub created_at: DateTime<Utc>,
@@ -49,12 +51,15 @@ pub struct InvitePoll {
 }
 
 impl InvitePoll {
-    pub async fn new(
+    pub async fn create<'e, E>(
+        executor: E,
         guild_id: GuildId,
         user_id: UserId,
         duration: Duration,
-    ) -> Result<Self, Error> {
-        let pool = POOL.get().expect("the Pool to be initialized");
+    ) -> Result<Self, Error>
+    where
+        E: PgExecutor<'e>,
+    {
         let duration = PgInterval::try_from(duration).map_err(sqlx::Error::Decode)?;
 
         let res = sqlx::query_as::<_, Self>(
@@ -67,7 +72,7 @@ impl InvitePoll {
         .bind(guild_id.0 as i64)
         .bind(user_id.0 as i64)
         .bind(duration)
-        .fetch_one(pool)
+        .fetch_one(executor)
         .await?;
 
         Ok(res)
@@ -79,6 +84,44 @@ impl InvitePoll {
 
     pub fn user_id(&self) -> UserId {
         UserId(self.user_id as u64)
+    }
+
+    pub fn channel_id(&self) -> Option<ChannelId> {
+        self.channel_id.map(|id| ChannelId(id as _))
+    }
+
+    pub fn message_id(&self) -> Option<MessageId> {
+        self.message_id.map(|id| MessageId(id as _))
+    }
+
+    pub async fn update_message<'e, E>(
+        &mut self,
+        executor: E,
+        message: &Message,
+    ) -> Result<(), Error>
+    where
+        E: PgExecutor<'e>,
+    {
+        let res = sqlx::query_as::<_, Self>(
+            r#"
+            UPDATE
+                invite_poll
+            SET
+                channel_id = $2,
+                message_id = $3
+            WHERE
+                id = $1
+            RETURNING *;
+            "#,
+        )
+        .bind(self.id.0)
+        .bind(message.channel_id.0 as i64)
+        .bind(message.id.0 as i64)
+        .fetch_one(executor)
+        .await?;
+
+        *self = res;
+        Ok(())
     }
 
     pub async fn close(&mut self, outcome: InvitePollOutcome) -> Result<(), Error> {

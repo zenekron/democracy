@@ -34,7 +34,7 @@ impl BackgroundPollHandler {
                 debug!("expired poll: {:?}", poll);
 
                 let guild_users = {
-                    let guild = poll.invite_poll.guild_id().to_partial_guild(http).await?;
+                    let guild = poll.invite_poll.guild_id.to_partial_guild(http).await?;
 
                     let mut max = 0_usize;
                     let mut after: Option<UserId> = None;
@@ -65,7 +65,7 @@ impl BackgroundPollHandler {
                 debug!("expired poll outcome: {:?}", outcome);
 
                 if outcome == InvitePollOutcome::Allow {
-                    let guild = poll.invite_poll.guild_id().to_partial_guild(http).await?;
+                    let guild = poll.invite_poll.guild_id.to_partial_guild(http).await?;
                     let general = guild
                         .channels(http)
                         .await?
@@ -76,7 +76,7 @@ impl BackgroundPollHandler {
                         .create_invite(http, |invite| invite.unique(true).max_uses(1))
                         .await?;
 
-                    let pm = poll.invite_poll.user_id().create_dm_channel(http).await?;
+                    let pm = poll.invite_poll.user_id.create_dm_channel(http).await?;
 
                     pm.send_message(http, |msg| msg.content(invite.url()))
                         .await?;
@@ -84,7 +84,7 @@ impl BackgroundPollHandler {
 
                 poll.invite_poll.close(outcome).await?;
 
-                match (poll.invite_poll.channel_id(), poll.invite_poll.message_id()) {
+                match (&poll.invite_poll.channel_id, &poll.invite_poll.message_id) {
                     (Some(channel_id), Some(message_id)) => {
                         let render = poll.create_renderer(self.ctx.clone()).await?;
                         channel_id

@@ -2,11 +2,15 @@ use std::{fmt::Display, str::FromStr};
 
 use base64::{display::Base64Display, Engine};
 use chrono::{DateTime, Duration, Utc};
-use serenity::model::prelude::{ChannelId, GuildId, Message, MessageId, UserId};
+use serenity::model::prelude::Message;
 use sqlx::{postgres::types::PgInterval, PgExecutor};
 use uuid::Uuid;
 
-use crate::{error::Error, POOL};
+use crate::{
+    error::Error,
+    util::serenity::{ChannelId, GuildId, MessageId, UserId},
+    POOL,
+};
 
 use super::InvitePollOutcome;
 
@@ -40,10 +44,10 @@ impl FromStr for InvitePollId {
 #[derive(Debug, sqlx::FromRow)]
 pub struct InvitePoll {
     pub id: InvitePollId,
-    guild_id: i64,
-    user_id: i64,
-    channel_id: Option<i64>,
-    message_id: Option<i64>,
+    pub guild_id: GuildId,
+    pub user_id: UserId,
+    pub channel_id: Option<ChannelId>,
+    pub message_id: Option<MessageId>,
     pub outcome: Option<InvitePollOutcome>,
     pub ends_at: DateTime<Utc>,
     pub created_at: DateTime<Utc>,
@@ -69,29 +73,13 @@ impl InvitePoll {
                 RETURNING *;
             "#,
         )
-        .bind(guild_id.0 as i64)
-        .bind(user_id.0 as i64)
+        .bind(guild_id)
+        .bind(user_id)
         .bind(duration)
         .fetch_one(executor)
         .await?;
 
         Ok(res)
-    }
-
-    pub fn guild_id(&self) -> GuildId {
-        GuildId(self.guild_id as u64)
-    }
-
-    pub fn user_id(&self) -> UserId {
-        UserId(self.user_id as u64)
-    }
-
-    pub fn channel_id(&self) -> Option<ChannelId> {
-        self.channel_id.map(|id| ChannelId(id as _))
-    }
-
-    pub fn message_id(&self) -> Option<MessageId> {
-        self.message_id.map(|id| MessageId(id as _))
     }
 
     pub async fn update_message<'e, E>(
@@ -114,9 +102,9 @@ impl InvitePoll {
             RETURNING *;
             "#,
         )
-        .bind(self.id.0)
-        .bind(message.channel_id.0 as i64)
-        .bind(message.id.0 as i64)
+        .bind(&self.id)
+        .bind(ChannelId::from(message.channel_id))
+        .bind(MessageId::from(message.id))
         .fetch_one(executor)
         .await?;
 

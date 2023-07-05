@@ -1,14 +1,13 @@
 use chrono::{DateTime, Utc};
-use serenity::model::prelude::UserId;
 
-use crate::{error::Error, POOL};
+use crate::{error::Error, util::serenity::UserId, POOL};
 
 use super::{InvitePollId, InvitePollVote};
 
 #[derive(Debug, sqlx::FromRow)]
 pub struct InvitePollVoteSubmission {
     pub invite_poll_id: InvitePollId,
-    user_id: i64,
+    pub user_id: UserId,
     pub vote: InvitePollVote,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -29,9 +28,9 @@ impl InvitePollVoteSubmission {
                 RETURNING *;
             "#,
         )
-        .bind(invite_poll_id.0)
-        .bind(user_id.0 as i64)
-        .bind(vote as InvitePollVote)
+        .bind(invite_poll_id)
+        .bind(user_id)
+        .bind(vote)
         .fetch_one(pool)
         .await?;
 

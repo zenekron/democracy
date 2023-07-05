@@ -1,5 +1,3 @@
-use std::str::FromStr;
-
 use chrono::Duration;
 use once_cell::sync::Lazy;
 use serenity::{
@@ -8,7 +6,6 @@ use serenity::{
         interaction::{
             application_command::ApplicationCommandInteraction, InteractionResponseType,
         },
-        GuildId, UserId,
     },
     prelude::Context,
 };
@@ -16,6 +13,7 @@ use serenity::{
 use crate::{
     entities::{InvitePoll, InvitePollWithVoteCount},
     error::Error,
+    util::serenity::{GuildId, UserId},
     POOL,
 };
 
@@ -121,7 +119,11 @@ impl TryFrom<&ApplicationCommandInteraction> for ApplicationCommandAction {
                                 .value
                                 .as_ref()
                                 .and_then(|val| val.as_str())
-                                .map(FromStr::from_str)
+                                .map(|str| {
+                                    str.parse::<UserId>().map_err(|err| {
+                                        Error::InvitePollIdInvalid(str.to_owned(), err.into())
+                                    })
+                                })
                                 .transpose()?;
                         }
 
@@ -154,7 +156,7 @@ impl TryFrom<&ApplicationCommandInteraction> for ApplicationCommandAction {
 
                 match user_id {
                     Some(user_id) => Ok(Self::CreateInvitePoll {
-                        guild_id,
+                        guild_id: guild_id.into(),
                         user_id,
                         duration: duration.unwrap_or(*DEFAULT_POLL_DURATION),
                     }),

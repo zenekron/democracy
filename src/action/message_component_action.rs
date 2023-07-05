@@ -1,7 +1,6 @@
 use serenity::{
-    model::prelude::{
-        interaction::{message_component::MessageComponentInteraction, InteractionResponseType},
-        UserId,
+    model::prelude::interaction::{
+        message_component::MessageComponentInteraction, InteractionResponseType,
     },
     prelude::Context,
 };
@@ -9,6 +8,7 @@ use serenity::{
 use crate::{
     entities::{InvitePollId, InvitePollVote, InvitePollVoteSubmission, InvitePollWithVoteCount},
     error::Error,
+    util::serenity::UserId,
 };
 
 #[derive(Debug)]
@@ -86,7 +86,7 @@ impl TryFrom<&MessageComponentInteraction> for MessageComponentAction {
 
                 Ok(Self::SubmitInvitePollVote {
                     invite_poll_id,
-                    user_id,
+                    user_id: user_id.into(),
                     vote: InvitePollVote::Yes,
                 })
             }
@@ -110,7 +110,7 @@ impl TryFrom<&MessageComponentInteraction> for MessageComponentAction {
 
                 Ok(Self::SubmitInvitePollVote {
                     invite_poll_id,
-                    user_id,
+                    user_id: user_id.into(),
                     vote: InvitePollVote::Maybe,
                 })
             }
@@ -134,7 +134,7 @@ impl TryFrom<&MessageComponentInteraction> for MessageComponentAction {
 
                 Ok(Self::SubmitInvitePollVote {
                     invite_poll_id,
-                    user_id,
+                    user_id: user_id.into(),
                     vote: InvitePollVote::No,
                 })
             }

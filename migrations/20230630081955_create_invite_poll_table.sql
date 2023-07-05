@@ -17,10 +17,10 @@ CREATE TYPE invite_poll_outcome AS ENUM ('allow', 'deny');
 
 CREATE TABLE invite_poll (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    guild_id bigint NOT NULL,
-    user_id bigint NOT NULL,
-    channel_id bigint,
-    message_id bigint,
+    guild_id varchar NOT NULL,
+    user_id varchar NOT NULL,
+    channel_id varchar,
+    message_id varchar,
     outcome invite_poll_outcome,
     ends_at timestamptz NOT NULL,
     created_at timestamptz NOT NULL DEFAULT now(),

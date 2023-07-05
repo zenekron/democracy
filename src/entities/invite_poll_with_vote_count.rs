@@ -71,7 +71,7 @@ impl InvitePollWithVoteCount {
         >,
         Error,
     > {
-        let user = self.invite_poll.user_id().to_user(&ctx.http).await?;
+        let user = self.invite_poll.user_id.to_user(&ctx.http).await?;
 
         let embeds = vec![{
             let mut embed = CreateEmbed::default();

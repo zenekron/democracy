@@ -1,6 +1,7 @@
 use serenity::{
-    model::prelude::interaction::{
-        message_component::MessageComponentInteraction, InteractionResponseType,
+    model::prelude::{
+        interaction::{message_component::MessageComponentInteraction, InteractionResponseType},
+        Message,
     },
     prelude::Context,
 };
@@ -67,74 +68,32 @@ impl TryFrom<&MessageComponentInteraction> for MessageComponentAction {
     fn try_from(interaction: &MessageComponentInteraction) -> Result<Self, Self::Error> {
         match interaction.data.custom_id.as_str() {
             "democracy.invite-poll-vote.yes" => {
-                let invite_poll_id = interaction
-                    .message
-                    .embeds
-                    .iter()
-                    .flat_map(|embed| embed.fields.iter())
-                    .find(|field| field.name == "Poll Id")
-                    .map(|field| field.value.as_str())
-                    .ok_or(Error::InvitePollIdNotFound)
-                    .and_then(|s| {
-                        s.strip_prefix('`')
-                            .unwrap_or(s)
-                            .strip_suffix('`')
-                            .unwrap_or(s)
-                            .parse::<InvitePollId>()
-                    })?;
-                let user_id = interaction.user.id;
+                let invite_poll_id =
+                    InvitePollWithVoteCount::extract_poll_id_from_message(&interaction.message)?;
 
                 Ok(Self::SubmitInvitePollVote {
                     invite_poll_id,
-                    user_id: user_id.into(),
+                    user_id: interaction.user.id.into(),
                     vote: InvitePollVote::Yes,
                 })
             }
             "democracy.invite-poll-vote.maybe" => {
-                let invite_poll_id = interaction
-                    .message
-                    .embeds
-                    .iter()
-                    .flat_map(|embed| embed.fields.iter())
-                    .find(|field| field.name == "Poll Id")
-                    .map(|field| field.value.as_str())
-                    .ok_or(Error::InvitePollIdNotFound)
-                    .and_then(|s| {
-                        s.strip_prefix('`')
-                            .unwrap_or(s)
-                            .strip_suffix('`')
-                            .unwrap_or(s)
-                            .parse::<InvitePollId>()
-                    })?;
-                let user_id = interaction.user.id;
+                let invite_poll_id =
+                    InvitePollWithVoteCount::extract_poll_id_from_message(&interaction.message)?;
 
                 Ok(Self::SubmitInvitePollVote {
                     invite_poll_id,
-                    user_id: user_id.into(),
+                    user_id: interaction.user.id.into(),
                     vote: InvitePollVote::Maybe,
                 })
             }
             "democracy.invite-poll-vote.no" => {
-                let invite_poll_id = interaction
-                    .message
-                    .embeds
-                    .iter()
-                    .flat_map(|embed| embed.fields.iter())
-                    .find(|field| field.name == "Poll Id")
-                    .map(|field| field.value.as_str())
-                    .ok_or(Error::InvitePollIdNotFound)
-                    .and_then(|s| {
-                        s.strip_prefix('`')
-                            .unwrap_or(s)
-                            .strip_suffix('`')
-                            .unwrap_or(s)
-                            .parse::<InvitePollId>()
-                    })?;
-                let user_id = interaction.user.id;
+                let invite_poll_id =
+                    InvitePollWithVoteCount::extract_poll_id_from_message(&interaction.message)?;
 
                 Ok(Self::SubmitInvitePollVote {
                     invite_poll_id,
-                    user_id: user_id.into(),
+                    user_id: interaction.user.id.into(),
                     vote: InvitePollVote::No,
                 })
             }

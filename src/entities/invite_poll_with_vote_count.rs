@@ -1,6 +1,6 @@
 use serenity::{
     builder::{CreateComponents, CreateEmbed},
-    model::prelude::component::ButtonStyle,
+    model::prelude::{component::ButtonStyle, Message},
     prelude::Context,
 };
 
@@ -60,6 +60,23 @@ impl InvitePollWithVoteCount {
 /// Discord
 ///
 impl InvitePollWithVoteCount {
+    pub fn extract_poll_id_from_message(message: &Message) -> Result<InvitePollId, Error> {
+        message
+            .embeds
+            .iter()
+            .flat_map(|embed| embed.fields.iter())
+            .find(|field| field.name == "Poll Id")
+            .map(|field| field.value.as_str())
+            .ok_or(Error::InvitePollIdNotFound)
+            .and_then(|s| {
+                s.strip_prefix('`')
+                    .unwrap_or(s)
+                    .strip_suffix('`')
+                    .unwrap_or(s)
+                    .parse::<InvitePollId>()
+            })
+    }
+
     pub async fn create_renderer(
         &self,
         ctx: Context,

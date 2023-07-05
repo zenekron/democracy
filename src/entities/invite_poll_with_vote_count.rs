@@ -106,18 +106,18 @@ impl InvitePollWithVoteCount {
                 "Votes",
                 {
                     let mut bar = ProgressBar::builder();
-                    bar.max((self.yes_count + self.maybe_count + self.no_count) as u64)
+                    bar.max(self.yes_count + self.maybe_count + self.no_count)
                         .with_count(true)
                         .with_percentage(true);
 
                     format!(
                         "{} {}\n{} {}\n{} {}",
                         emojis::LARGE_GREEN_CIRCLE,
-                        bar.value(self.yes_count as u64).build().unwrap(),
+                        bar.value(self.yes_count).build().unwrap(),
                         emojis::LARGE_YELLOW_CIRCLE,
-                        bar.value(self.maybe_count as u64).build().unwrap(),
+                        bar.value(self.maybe_count).build().unwrap(),
                         emojis::LARGE_RED_CIRCLE,
-                        bar.value(self.no_count as u64).build().unwrap(),
+                        bar.value(self.no_count).build().unwrap(),
                     )
                 },
                 false,

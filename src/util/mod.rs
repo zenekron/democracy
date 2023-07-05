@@ -4,11 +4,11 @@ pub mod serenity;
 
 #[derive(Debug, derive_builder::Builder)]
 pub struct ProgressBar {
-    value: u64,
-    max: u64,
+    value: i64,
+    max: i64,
 
     #[builder(default = "10")]
-    length: u64,
+    length: i64,
 
     #[builder(default = "'░'")]
     empty_symbol: char,
@@ -32,7 +32,8 @@ impl ProgressBar {
 impl Display for ProgressBar {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let value = (self.value as f32) / (self.max as f32);
-        let nblocks = (value * self.length as f32) as u64;
+        let percent = value * 100.0;
+        let nblocks = (value * self.length as f32) as _;
 
         for _ in 0..nblocks {
             f.write_char(self.full_symbol)?;
@@ -42,7 +43,6 @@ impl Display for ProgressBar {
             f.write_char(self.empty_symbol)?;
         }
 
-        let percent = (value * 100.0) as usize;
         match (self.with_count, self.with_percentage) {
             (false, false) => Ok(()),
             (true, false) => write!(f, " [{}/{}]", self.value, self.max),

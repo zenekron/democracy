@@ -30,20 +30,23 @@ pub enum ApplicationCommandAction {
 
 impl ApplicationCommandAction {
     pub async fn register(ctx: Context) -> Result<(), Error> {
-        let _invite = Command::create_global_application_command(&ctx.http, |cmd| {
-            cmd.name("invite")
-                .description("Creates a petition to invite a new user")
-                .create_option(|opt| {
-                    opt.name("user_id")
-                        .kind(CommandOptionType::String)
-                        .description("The ID of the user to invite")
-                        .required(true)
-                })
-                .create_option(|opt| {
-                    opt.name("duration")
-                        .kind(CommandOptionType::String)
-                        .description("Duration of the poll")
-                })
+        Command::set_global_application_commands(&ctx.http, |commands| {
+            commands.create_application_command(|command| {
+                command
+                    .name("invite")
+                    .description("Creates a petition to invite a new user")
+                    .create_option(|opt| {
+                        opt.name("user_id")
+                            .kind(CommandOptionType::String)
+                            .description("The ID of the user to invite")
+                            .required(true)
+                    })
+                    .create_option(|opt| {
+                        opt.name("duration")
+                            .kind(CommandOptionType::String)
+                            .description("Duration of the poll")
+                    })
+            })
         })
         .await?;
 

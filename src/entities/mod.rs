@@ -1,7 +1,9 @@
+mod guild;
 mod invite_poll;
 mod invite_poll_vote_submission;
 mod invite_poll_with_vote_count;
 
+pub use guild::*;
 pub use invite_poll::*;
 pub use invite_poll_vote_submission::*;
 pub use invite_poll_with_vote_count::*;

@@ -31,7 +31,7 @@ impl ProgressBar {
 
 impl Display for ProgressBar {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let value = (self.value as f32) / (self.max as f32);
+        let value = (self.value as f32) / (self.max as f32).max(1.0);
         let percent = value * 100.0;
         let nblocks = (value * self.length as f32) as _;
 

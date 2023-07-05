@@ -1,6 +1,6 @@
 use serenity::model::prelude::UserIdParseError;
 
-use crate::entities::InvitePollId;
+use crate::{entities::InvitePollId, util::serenity::GuildId};
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -24,6 +24,9 @@ pub enum Error {
 
     #[error("value `{0}` is not a valid poll id: {1}")]
     InvitePollIdInvalid(String, Box<dyn std::error::Error>),
+
+    #[error("could not find a guild with id `{0:?}`")]
+    GuildNotFound(GuildId),
 
     #[error(transparent)]
     InvalidDuration(Box<dyn std::error::Error>),

@@ -4,11 +4,9 @@ use serenity::{model::prelude::UserId, prelude::Context};
 use tokio::time::{interval, Interval};
 
 use crate::{
-    entities::{InvitePollOutcome, InvitePollWithVoteCount},
+    entities::{Guild, InvitePollOutcome, InvitePollWithVoteCount},
     error::Error,
 };
-
-const VOTE_THRESHOLD: f32 = 0.8;
 
 pub struct BackgroundPollHandler {
     ctx: Context,
@@ -33,9 +31,13 @@ impl BackgroundPollHandler {
             for mut poll in polls {
                 debug!("expired poll: {:?}", poll);
 
-                let guild_users = {
-                    let guild = poll.invite_poll.guild_id.to_partial_guild(http).await?;
+                let guild = poll.invite_poll.guild_id.to_partial_guild(http).await?;
 
+                let settings = Guild::find_by_id(&poll.invite_poll.guild_id)
+                    .await?
+                    .ok_or_else(|| Error::GuildNotFound(poll.invite_poll.guild_id.clone()))?;
+
+                let guild_users = {
                     let mut max = 0_usize;
                     let mut after: Option<UserId> = None;
                     loop {
@@ -52,7 +54,9 @@ impl BackgroundPollHandler {
                 };
 
                 let outcome = {
-                    let required_votes = (guild_users as f32 * VOTE_THRESHOLD).ceil() as i64;
+                    let required_votes = (guild_users as f32
+                        * (settings.vote_success_threshold / 100.0))
+                        .ceil() as i64;
 
                     if poll.no_count == 0 && (poll.yes_count + poll.maybe_count) >= required_votes {
                         InvitePollOutcome::Allow
@@ -63,14 +67,8 @@ impl BackgroundPollHandler {
                 debug!("expired poll outcome: {:?}", outcome);
 
                 if outcome == InvitePollOutcome::Allow {
-                    let guild = poll.invite_poll.guild_id.to_partial_guild(http).await?;
-                    let general = guild
-                        .channels(http)
-                        .await?
-                        .into_values()
-                        .find(|ch| ch.name == "general")
-                        .unwrap();
-                    let invite = general
+                    let invite = settings
+                        .invite_channel_id
                         .create_invite(http, |invite| invite.unique(true).max_uses(1))
                         .await?;
 

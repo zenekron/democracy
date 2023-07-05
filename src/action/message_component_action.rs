@@ -1,7 +1,6 @@
 use serenity::{
-    model::prelude::{
-        interaction::{message_component::MessageComponentInteraction, InteractionResponseType},
-        Message,
+    model::prelude::interaction::{
+        message_component::MessageComponentInteraction, InteractionResponseType,
     },
     prelude::Context,
 };

@@ -28,8 +28,8 @@ static DEFAULT_POLL_DURATION: Lazy<Duration> = Lazy::new(|| Duration::days(3));
 pub enum ApplicationCommandAction {
     Configure {
         guild_id: GuildId,
-        invite_channel: ChannelId,
-        vote_success_threshold: f32,
+        invite_channel_id: ChannelId,
+        invite_poll_quorum: f32,
     },
     CreateInvitePoll {
         guild_id: GuildId,
@@ -52,14 +52,14 @@ impl ApplicationCommandAction {
                                 .description("Which channels users should be invited to")
                                 .required(true)
                         })
-                    .create_option(|opt| {
-                        opt.name("vote_success_threshold")
-                            .kind(CommandOptionType::Number)
-                            .description("The minimum percentage of votes required for a vote to be considered valid")
-                            .min_number_value(0.0)
-                            .max_number_value(100.0)
-                            .required(true)
-                    })
+                        .create_option(|opt| {
+                            opt.name("invite_poll_quorum")
+                                .kind(CommandOptionType::Number)
+                                .description("The minimum amount of votes required")
+                                .min_number_value(0.0)
+                                .max_number_value(100.0)
+                                .required(true)
+                        })
                 })
                 .create_application_command(|command| {
                     command
@@ -91,8 +91,8 @@ impl ApplicationCommandAction {
         match self {
             ApplicationCommandAction::Configure {
                 guild_id,
-                invite_channel,
-                vote_success_threshold,
+                invite_channel_id,
+                invite_poll_quorum,
             } => {
                 let pool = POOL.get().expect("the Pool to be initialized");
                 let mut transaction = pool.begin().await?;
@@ -100,8 +100,8 @@ impl ApplicationCommandAction {
                 let guild = Guild::create(
                     &mut *transaction,
                     guild_id,
-                    invite_channel,
-                    *vote_success_threshold,
+                    invite_channel_id,
+                    *invite_poll_quorum,
                 )
                 .await?;
 
@@ -129,8 +129,11 @@ impl ApplicationCommandAction {
                                                 true,
                                             )
                                             .field(
-                                                "Required Votes (%)",
-                                                guild.vote_success_threshold,
+                                                "Required Votes",
+                                                format!(
+                                                    "{:.0}%",
+                                                    guild.invite_poll_quorum() * 100.0
+                                                ),
                                                 true,
                                             )
                                     })
@@ -194,13 +197,13 @@ impl TryFrom<&ApplicationCommandInteraction> for ApplicationCommandAction {
     fn try_from(interaction: &ApplicationCommandInteraction) -> Result<Self, Self::Error> {
         match interaction.data.name.as_str() {
             "configure" => {
-                let mut invite_channel: Option<ChannelId> = None;
-                let mut vote_success_threshold: Option<f32> = None;
+                let mut invite_channel_id: Option<ChannelId> = None;
+                let mut invite_poll_quorum: Option<f32> = None;
 
                 for opt in &interaction.data.options {
                     match opt.name.as_str() {
                         "invite_channel" => {
-                            invite_channel = match opt.resolved.as_ref() {
+                            invite_channel_id = match opt.resolved.as_ref() {
                                 Some(CommandDataOptionValue::Channel(channel)) => {
                                     Some(channel.id.into())
                                 }
@@ -209,8 +212,8 @@ impl TryFrom<&ApplicationCommandInteraction> for ApplicationCommandAction {
                             };
                         }
 
-                        "vote_success_threshold" => {
-                            vote_success_threshold = match opt.resolved {
+                        "invite_poll_quorum" => {
+                            invite_poll_quorum = match opt.resolved {
                                 Some(CommandDataOptionValue::Number(val)) => Some(val as _),
                                 // TODO: handle `Some(_)`
                                 _ => None,
@@ -230,11 +233,11 @@ impl TryFrom<&ApplicationCommandInteraction> for ApplicationCommandAction {
                     .guild_id
                     .ok_or_else(|| Error::GuildCommandNotInGuild(interaction.data.name.clone()))?;
 
-                match (invite_channel, vote_success_threshold) {
-                    (Some(invite_channel), Some(vote_success_threshold)) => Ok(Self::Configure {
+                match (invite_channel_id, invite_poll_quorum) {
+                    (Some(invite_channel_id), Some(invite_poll_quorum)) => Ok(Self::Configure {
                         guild_id: guild_id.into(),
-                        invite_channel,
-                        vote_success_threshold,
+                        invite_channel_id,
+                        invite_poll_quorum,
                     }),
                     (None, _) => Err(Error::MissingCommandOption(
                         interaction.data.name.clone(),
@@ -242,7 +245,7 @@ impl TryFrom<&ApplicationCommandInteraction> for ApplicationCommandAction {
                     )),
                     (_, None) => Err(Error::MissingCommandOption(
                         interaction.data.name.clone(),
-                        "vote_success_threshold".to_owned(),
+                        "invite_poll_quorum".to_owned(),
                     )),
                 }
             }

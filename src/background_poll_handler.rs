@@ -54,11 +54,10 @@ impl BackgroundPollHandler {
                 };
 
                 let outcome = {
-                    let required_votes = (guild_users as f32
-                        * (settings.vote_success_threshold / 100.0))
-                        .ceil() as i64;
+                    let required_votes =
+                        (guild_users as f32 * settings.invite_poll_quorum()).ceil() as i64;
 
-                    if poll.no_count == 0 && (poll.yes_count) >= required_votes {
+                    if poll.no_count == 0 && poll.yes_count >= required_votes {
                         InvitePollOutcome::Allow
                     } else {
                         InvitePollOutcome::Deny

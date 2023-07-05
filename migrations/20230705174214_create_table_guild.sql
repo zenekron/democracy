@@ -3,7 +3,7 @@
 CREATE TABLE guild (
     id varchar PRIMARY KEY, -- GuildId
     invite_channel_id varchar NOT NULL, -- ChannelId
-    vote_success_threshold real NOT NULL,
+    invite_poll_quorum real NOT NULL,
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now()
 );

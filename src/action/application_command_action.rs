@@ -15,7 +15,10 @@ use serenity::{
 use crate::{
     entities::{Guild, InvitePoll, InvitePollWithVoteCount},
     error::Error,
-    util::serenity::{ChannelId, GuildId, UserId},
+    util::{
+        colors,
+        serenity::{ChannelId, GuildId, UserId},
+    },
     POOL,
 };
 
@@ -27,6 +30,7 @@ pub enum ApplicationCommandAction {
         guild_id: GuildId,
         invite_channel: ChannelId,
         vote_success_threshold: f32,
+        max_maybe_votes_threshold: f32,
     },
     CreateInvitePoll {
         guild_id: GuildId,
@@ -57,6 +61,14 @@ impl ApplicationCommandAction {
                             .max_number_value(100.0)
                             .required(true)
                     })
+                    .create_option(|opt|
+                                   opt.name("max_maybe_votes_threshold")
+                                   .kind(CommandOptionType::Number)
+                                   .description("The maximum percentage of uncertain votes")
+                                   .min_number_value(0.0)
+                                   .max_number_value(100.0)
+                                   .required(true)
+                               )
                 })
                 .create_application_command(|command| {
                     command
@@ -90,6 +102,7 @@ impl ApplicationCommandAction {
                 guild_id,
                 invite_channel,
                 vote_success_threshold,
+                max_maybe_votes_threshold,
             } => {
                 let pool = POOL.get().expect("the Pool to be initialized");
                 let mut transaction = pool.begin().await?;
@@ -99,6 +112,7 @@ impl ApplicationCommandAction {
                     guild_id,
                     invite_channel,
                     *vote_success_threshold,
+                    *max_maybe_votes_threshold,
                 )
                 .await?;
 
@@ -112,16 +126,29 @@ impl ApplicationCommandAction {
                                 data //
                                     .ephemeral(true)
                                     .embed(|embed| {
-                                        embed.field(
-                                            "Invite Channel",
-                                            match invite_channel {
-                                                Channel::Guild(ch) => ch.name,
-                                                Channel::Private(_) => "private".to_owned(),
-                                                Channel::Category(ch) => ch.name,
-                                                _ => "unknown".to_owned(),
-                                            },
-                                            true,
-                                        )
+                                        embed
+                                            .title("Settings")
+                                            .color(colors::DISCORD_BLURPLE)
+                                            .field(
+                                                "Invite Channel",
+                                                match invite_channel {
+                                                    Channel::Guild(ch) => ch.name,
+                                                    Channel::Private(_) => "private".to_owned(),
+                                                    Channel::Category(ch) => ch.name,
+                                                    _ => "unknown".to_owned(),
+                                                },
+                                                true,
+                                            )
+                                            .field(
+                                                "Required Votes (%)",
+                                                guild.vote_success_threshold,
+                                                true,
+                                            )
+                                            .field(
+                                                "Max Abstensions (%)",
+                                                guild.max_maybe_votes_threshold,
+                                                true,
+                                            )
                                     })
                             })
                     })
@@ -186,6 +213,7 @@ impl TryFrom<&ApplicationCommandInteraction> for ApplicationCommandAction {
             "configure" => {
                 let mut invite_channel: Option<ChannelId> = None;
                 let mut vote_success_threshold: Option<f32> = None;
+                let mut max_maybe_votes_threshold: Option<f32> = None;
 
                 for opt in &interaction.data.options {
                     match opt.name.as_str() {
@@ -207,6 +235,14 @@ impl TryFrom<&ApplicationCommandInteraction> for ApplicationCommandAction {
                             }
                         }
 
+                        "max_maybe_votes_threshold" => {
+                            max_maybe_votes_threshold = match opt.resolved {
+                                Some(CommandDataOptionValue::Number(val)) => Some(val as _),
+                                // TODO: handle `Some(_)`
+                                _ => None,
+                            }
+                        }
+
                         other => {
                             return Err(Error::UnknownCommandOption(
                                 "invite".to_owned(),
@@ -220,19 +256,32 @@ impl TryFrom<&ApplicationCommandInteraction> for ApplicationCommandAction {
                     .guild_id
                     .ok_or_else(|| Error::GuildCommandNotInGuild(interaction.data.name.clone()))?;
 
-                match (invite_channel, vote_success_threshold) {
-                    (Some(invite_channel), Some(vote_success_threshold)) => Ok(Self::Configure {
+                match (
+                    invite_channel,
+                    vote_success_threshold,
+                    max_maybe_votes_threshold,
+                ) {
+                    (
+                        Some(invite_channel),
+                        Some(vote_success_threshold),
+                        Some(max_maybe_votes_threshold),
+                    ) => Ok(Self::Configure {
                         guild_id: guild_id.into(),
                         invite_channel,
                         vote_success_threshold,
+                        max_maybe_votes_threshold,
                     }),
-                    (Some(_), None) => Err(Error::MissingCommandOption(
+                    (None, _, _) => Err(Error::MissingCommandOption(
+                        interaction.data.name.clone(),
+                        "invite_channel".to_owned(),
+                    )),
+                    (_, None, _) => Err(Error::MissingCommandOption(
                         interaction.data.name.clone(),
                         "vote_success_threshold".to_owned(),
                     )),
-                    (_, _) => Err(Error::MissingCommandOption(
+                    (_, _, None) => Err(Error::MissingCommandOption(
                         interaction.data.name.clone(),
-                        "invite_channel".to_owned(),
+                        "max_maybe_votes_threshold".to_owned(),
                     )),
                 }
             }

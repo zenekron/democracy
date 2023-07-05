@@ -4,6 +4,7 @@ CREATE TABLE guild (
     id varchar PRIMARY KEY, -- GuildId
     invite_channel_id varchar NOT NULL, -- ChannelId
     vote_success_threshold real NOT NULL,
+    max_maybe_votes_threshold real NOT NULL,
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now()
 );

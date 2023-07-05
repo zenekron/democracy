@@ -57,8 +57,14 @@ impl BackgroundPollHandler {
                     let required_votes = (guild_users as f32
                         * (settings.vote_success_threshold / 100.0))
                         .ceil() as i64;
+                    let max_maybe_votes = (guild_users as f32
+                        * (settings.max_maybe_votes_threshold / 100.0))
+                        .ceil() as i64;
 
-                    if poll.no_count == 0 && (poll.yes_count + poll.maybe_count) >= required_votes {
+                    if poll.no_count == 0
+                        && poll.maybe_count <= max_maybe_votes
+                        && (poll.yes_count + poll.maybe_count) >= required_votes
+                    {
                         InvitePollOutcome::Allow
                     } else {
                         InvitePollOutcome::Deny

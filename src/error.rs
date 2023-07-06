@@ -1,6 +1,6 @@
 use serenity::model::prelude::UserIdParseError;
 
-use crate::{entities::InvitePollId, util::serenity::GuildId};
+use crate::{action::ParseActionError, entities::InvitePollId, util::serenity::GuildId};
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -30,6 +30,9 @@ pub enum Error {
 
     #[error(transparent)]
     InvalidDuration(Box<dyn std::error::Error>),
+
+    #[error(transparent)]
+    ParseActionError(#[from] ParseActionError),
 
     //
     // config

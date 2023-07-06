@@ -2,35 +2,29 @@ use chrono::Duration;
 use once_cell::sync::Lazy;
 use serenity::{
     model::prelude::{
-        application_command::CommandDataOptionValue,
         command::{Command, CommandOptionType},
         interaction::{
             application_command::ApplicationCommandInteraction, InteractionResponseType,
         },
-        Channel,
+        Interaction,
     },
     prelude::Context,
 };
 
 use crate::{
-    entities::{Guild, InvitePoll, InvitePollWithVoteCount},
+    entities::{InvitePoll, InvitePollWithVoteCount},
     error::Error,
-    util::{
-        colors,
-        serenity::{ChannelId, GuildId, UserId},
-    },
+    util::serenity::{GuildId, UserId},
     POOL,
 };
+
+use super::{Action, Configure};
 
 static DEFAULT_POLL_DURATION: Lazy<Duration> = Lazy::new(|| Duration::days(3));
 
 #[derive(Debug)]
 pub enum ApplicationCommandAction {
-    Configure {
-        guild_id: GuildId,
-        invite_channel_id: ChannelId,
-        invite_poll_quorum: f32,
-    },
+    Configure(Configure),
     CreateInvitePoll {
         guild_id: GuildId,
         user_id: UserId,
@@ -42,25 +36,7 @@ impl ApplicationCommandAction {
     pub async fn register(ctx: Context) -> Result<(), Error> {
         Command::set_global_application_commands(&ctx.http, |commands| {
             commands
-                .create_application_command(|command| {
-                    command
-                        .name("configure")
-                        .description("Configures the bot for the current guild")
-                        .create_option(|opt| {
-                            opt.name("invite_channel")
-                                .kind(CommandOptionType::Channel)
-                                .description("Which channels users should be invited to")
-                                .required(true)
-                        })
-                        .create_option(|opt| {
-                            opt.name("invite_poll_quorum")
-                                .kind(CommandOptionType::Number)
-                                .description("The minimum amount of votes required")
-                                .min_number_value(0.0)
-                                .max_number_value(100.0)
-                                .required(true)
-                        })
-                })
+                .create_application_command(Configure::register)
                 .create_application_command(|command| {
                     command
                         .name("invite")
@@ -89,62 +65,19 @@ impl ApplicationCommandAction {
         interaction: &ApplicationCommandInteraction,
     ) -> Result<(), Error> {
         match self {
-            ApplicationCommandAction::Configure {
-                guild_id,
-                invite_channel_id,
-                invite_poll_quorum,
-            } => {
-                let pool = POOL.get().expect("the Pool to be initialized");
-                let mut transaction = pool.begin().await?;
-
-                let guild = Guild::create(
-                    &mut *transaction,
-                    guild_id,
-                    invite_channel_id,
-                    *invite_poll_quorum,
-                )
-                .await?;
-
-                let invite_channel = guild.invite_channel_id.to_channel(&ctx.http).await?;
+            ApplicationCommandAction::Configure(action) => {
+                let response = action.execute(&ctx).await?;
 
                 interaction
-                    .create_interaction_response(&ctx.http, |response| {
-                        response
-                            .kind(InteractionResponseType::ChannelMessageWithSource)
-                            .interaction_response_data(|data| {
-                                data //
-                                    .ephemeral(true)
-                                    .embed(|embed| {
-                                        embed
-                                            .title("Settings")
-                                            .color(colors::DISCORD_BLURPLE)
-                                            .field(
-                                                "Invite Channel",
-                                                match invite_channel {
-                                                    Channel::Guild(ch) => ch.name,
-                                                    Channel::Private(_) => "private".to_owned(),
-                                                    Channel::Category(ch) => ch.name,
-                                                    _ => "unknown".to_owned(),
-                                                },
-                                                true,
-                                            )
-                                            .field(
-                                                "Required Votes",
-                                                format!(
-                                                    "{:.0}%",
-                                                    guild.invite_poll_quorum() * 100.0
-                                                ),
-                                                true,
-                                            )
-                                    })
-                            })
+                    .create_interaction_response(&ctx.http, move |resp| {
+                        *resp = response;
+                        resp
                     })
                     .await?;
 
-                transaction.commit().await?;
-
                 Ok(())
             }
+
             ApplicationCommandAction::CreateInvitePoll {
                 guild_id,
                 user_id,
@@ -197,57 +130,9 @@ impl TryFrom<&ApplicationCommandInteraction> for ApplicationCommandAction {
     fn try_from(interaction: &ApplicationCommandInteraction) -> Result<Self, Self::Error> {
         match interaction.data.name.as_str() {
             "configure" => {
-                let mut invite_channel_id: Option<ChannelId> = None;
-                let mut invite_poll_quorum: Option<f32> = None;
-
-                for opt in &interaction.data.options {
-                    match opt.name.as_str() {
-                        "invite_channel" => {
-                            invite_channel_id = match opt.resolved.as_ref() {
-                                Some(CommandDataOptionValue::Channel(channel)) => {
-                                    Some(channel.id.into())
-                                }
-                                // TODO: handle `Some(_)`
-                                _ => None,
-                            };
-                        }
-
-                        "invite_poll_quorum" => {
-                            invite_poll_quorum = match opt.resolved {
-                                Some(CommandDataOptionValue::Number(val)) => Some(val as _),
-                                // TODO: handle `Some(_)`
-                                _ => None,
-                            }
-                        }
-
-                        other => {
-                            return Err(Error::UnknownCommandOption(
-                                "invite".to_owned(),
-                                other.to_owned(),
-                            ))
-                        }
-                    }
-                }
-
-                let guild_id = interaction
-                    .guild_id
-                    .ok_or_else(|| Error::GuildCommandNotInGuild(interaction.data.name.clone()))?;
-
-                match (invite_channel_id, invite_poll_quorum) {
-                    (Some(invite_channel_id), Some(invite_poll_quorum)) => Ok(Self::Configure {
-                        guild_id: guild_id.into(),
-                        invite_channel_id,
-                        invite_poll_quorum,
-                    }),
-                    (None, _) => Err(Error::MissingCommandOption(
-                        interaction.data.name.clone(),
-                        "invite_channel".to_owned(),
-                    )),
-                    (_, None) => Err(Error::MissingCommandOption(
-                        interaction.data.name.clone(),
-                        "invite_poll_quorum".to_owned(),
-                    )),
-                }
+                let action =
+                    Configure::try_from(&Interaction::ApplicationCommand(interaction.clone()))?;
+                Ok(Self::Configure(action))
             }
             "invite" => {
                 let mut user_id: Option<UserId> = None;

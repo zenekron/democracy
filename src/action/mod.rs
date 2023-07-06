@@ -8,6 +8,7 @@ use serenity::{
     model::prelude::{application_command::CommandDataOptionValue, Interaction},
     prelude::Context,
 };
+pub use submit_invite_poll_vote::*;
 
 use crate::error::Error;
 
@@ -15,6 +16,7 @@ mod application_command_action;
 mod configure;
 mod create_invite_poll;
 mod message_component_action;
+mod submit_invite_poll_vote;
 
 #[macro_export]
 macro_rules! resolve_option {

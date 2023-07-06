@@ -15,8 +15,9 @@ pub enum InvitePollOutcome {
     Deny,
 }
 
-#[derive(Clone, Copy, Debug, sqlx::Type)]
+#[derive(Clone, Copy, Debug, sqlx::Type, strum::EnumString)]
 #[sqlx(type_name = "invite_poll_vote", rename_all = "lowercase")]
+#[strum(serialize_all = "snake_case")]
 pub enum InvitePollVote {
     Yes,
     No,

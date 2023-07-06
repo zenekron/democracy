@@ -44,7 +44,7 @@ impl Handler {
         interaction: &MessageComponentInteraction,
     ) -> Result<(), Error> {
         let action = MessageComponentAction::try_from(interaction)?;
-        action.execute(ctx, interaction).await
+        action.execute(ctx).await
     }
 }
 

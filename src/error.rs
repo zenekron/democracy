@@ -10,9 +10,6 @@ pub enum Error {
     #[error("could not find an invite poll with id `{0}`")]
     InvitePollNotFound(InvitePollId),
 
-    #[error("could not extract a valid poll id")]
-    InvitePollIdNotFound,
-
     #[error("value `{0}` is not a valid poll id: {1}")]
     InvitePollIdInvalid(String, Box<dyn std::error::Error>),
 

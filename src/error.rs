@@ -7,15 +7,6 @@ pub enum Error {
     #[error("unknown command `{0}`")]
     UnknownCommand(String),
 
-    #[error("unknown option `{1}` for command `{0}`")]
-    UnknownCommandOption(String, String),
-
-    #[error("missing option `{1}` for command `{0}`")]
-    MissingCommandOption(String, String),
-
-    #[error("command `{0}` can only be issued inside a guild")]
-    GuildCommandNotInGuild(String),
-
     #[error("could not find an invite poll with id `{0}`")]
     InvitePollNotFound(InvitePollId),
 
@@ -27,9 +18,6 @@ pub enum Error {
 
     #[error("could not find a guild with id `{0:?}`")]
     GuildNotFound(GuildId),
-
-    #[error(transparent)]
-    InvalidDuration(Box<dyn std::error::Error>),
 
     #[error(transparent)]
     ParseActionError(#[from] ParseActionError),

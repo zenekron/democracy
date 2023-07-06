@@ -1,8 +1,8 @@
 use serenity::{
     async_trait,
-    builder::{CreateApplicationCommand, CreateInteractionResponse},
+    builder::CreateApplicationCommand,
     model::prelude::{
-        application_command::CommandDataOptionValue, command::CommandOptionType, Channel,
+        application_command::ApplicationCommandInteraction, command::CommandOptionType, Channel,
         Interaction, InteractionResponseType,
     },
     prelude::Context,
@@ -11,6 +11,7 @@ use serenity::{
 use crate::{
     entities::Guild,
     error::Error,
+    resolve_option,
     util::{
         colors,
         serenity::{ChannelId, GuildId},
@@ -20,11 +21,12 @@ use crate::{
 
 use super::{Action, ParseActionError};
 
-const INVITE_CHANNEL_ID_OPTION_NAME: &str = "invite-channel";
-const INVITE_POLL_QUORUM_OPTION_NAME: &str = "invite-poll-quorum";
+const INVITE_CHANNEL_ID_OPTION_NAME: &'static str = "invite-channel";
+const INVITE_POLL_QUORUM_OPTION_NAME: &'static str = "invite-poll-quorum";
 
 #[derive(Debug)]
 pub struct Configure {
+    interaction: ApplicationCommandInteraction,
     guild_id: GuildId,
     invite_channel_id: ChannelId,
     invite_poll_quorum: f32,
@@ -34,7 +36,7 @@ pub struct Configure {
 impl Action for Configure {
     const ID: &'static str = "configure";
 
-    async fn execute(&self, ctx: &Context) -> Result<CreateInteractionResponse, Error> {
+    async fn execute(&self, ctx: &Context) -> Result<(), Error> {
         trace!("{:?}", self);
         let pool = POOL.get().expect("the Pool to be initialized");
         let mut transaction = pool.begin().await?;
@@ -50,42 +52,45 @@ impl Action for Configure {
 
         let invite_channel = guild.invite_channel_id.to_channel(&ctx.http).await?;
 
+        self.interaction
+            .create_interaction_response(&ctx.http, |response| {
+                response
+                    .kind(InteractionResponseType::ChannelMessageWithSource)
+                    .interaction_response_data(|data| {
+                        data //
+                            .ephemeral(true)
+                            .embed(|embed| {
+                                embed
+                                    .title("Settings")
+                                    .color(colors::DISCORD_BLURPLE)
+                                    .field(
+                                        "Invite Channel",
+                                        match invite_channel {
+                                            Channel::Guild(ch) => ch.name,
+                                            Channel::Private(_) => "private".to_owned(),
+                                            Channel::Category(ch) => ch.name,
+                                            _ => "unknown".to_owned(),
+                                        },
+                                        true,
+                                    )
+                                    .field(
+                                        "Required Votes",
+                                        format!("{:.0}%", guild.invite_poll_quorum() * 100.0),
+                                        true,
+                                    )
+                            })
+                    })
+            })
+            .await?;
+
         transaction.commit().await?;
 
-        let mut response = CreateInteractionResponse::default();
-        response
-            .kind(InteractionResponseType::ChannelMessageWithSource)
-            .interaction_response_data(|data| {
-                data //
-                    .ephemeral(true)
-                    .embed(|embed| {
-                        embed
-                            .title("Settings")
-                            .color(colors::DISCORD_BLURPLE)
-                            .field(
-                                "Invite Channel",
-                                match invite_channel {
-                                    Channel::Guild(ch) => ch.name,
-                                    Channel::Private(_) => "private".to_owned(),
-                                    Channel::Category(ch) => ch.name,
-                                    _ => "unknown".to_owned(),
-                                },
-                                true,
-                            )
-                            .field(
-                                "Required Votes",
-                                format!("{:.0}%", guild.invite_poll_quorum() * 100.0),
-                                true,
-                            )
-                    })
-            });
-
-        Ok(response)
+        Ok(())
     }
 
     fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicationCommand {
         command
-            .name("configure")
+            .name(Self::ID)
             .description("Configures the bot for the current guild")
             .create_option(|opt| {
                 opt.name(INVITE_CHANNEL_ID_OPTION_NAME)
@@ -119,28 +124,12 @@ impl<'a> TryFrom<&'a Interaction> for Configure {
         for opt in &interaction.data.options {
             match opt.name.as_str() {
                 name @ INVITE_CHANNEL_ID_OPTION_NAME => {
-                    invite_channel_id = match &opt.resolved {
-                        Some(CommandDataOptionValue::Channel(channel)) => Ok(channel.id.into()),
-                        value => Err(ParseActionError::InvalidOptionKind(
-                            Self::ID,
-                            name.into(),
-                            "channel",
-                            value.clone(),
-                        )),
-                    }
-                    .map(Some)?;
+                    let value = resolve_option!(&opt.resolved, Channel, name)?;
+                    invite_channel_id = Some(value.id.into());
                 }
                 name @ INVITE_POLL_QUORUM_OPTION_NAME => {
-                    invite_poll_quorum = match &opt.resolved {
-                        Some(CommandDataOptionValue::Number(val)) => Ok(*val as f32),
-                        value => Err(ParseActionError::InvalidOptionKind(
-                            Self::ID,
-                            name.into(),
-                            "f32",
-                            value.clone(),
-                        )),
-                    }
-                    .map(Some)?;
+                    let value = resolve_option!(&opt.resolved, Number, name)?;
+                    invite_poll_quorum = Some(*value as f32);
                 }
                 other => {
                     return Err(ParseActionError::UnknownOption(Self::ID, other.to_owned()));
@@ -163,6 +152,7 @@ impl<'a> TryFrom<&'a Interaction> for Configure {
             .map(Into::into)?;
 
         Ok(Self {
+            interaction: interaction.clone(),
             guild_id,
             invite_channel_id,
             invite_poll_quorum,

@@ -1,7 +1,7 @@
-use std::{fmt::Display, str::FromStr};
+use std::{fmt::Display, str::FromStr, time::Duration};
 
 use base64::{display::Base64Display, Engine};
-use chrono::{DateTime, Duration, Utc};
+use chrono::{DateTime, Utc};
 use serenity::model::prelude::Message;
 use sqlx::{postgres::types::PgInterval, PgExecutor};
 use uuid::Uuid;
@@ -57,14 +57,14 @@ pub struct InvitePoll {
 impl InvitePoll {
     pub async fn create<'e, E>(
         executor: E,
-        guild_id: GuildId,
-        user_id: UserId,
-        duration: Duration,
+        guild_id: &GuildId,
+        user_id: &UserId,
+        duration: &Duration,
     ) -> Result<Self, Error>
     where
         E: PgExecutor<'e>,
     {
-        let duration = PgInterval::try_from(duration).map_err(sqlx::Error::Decode)?;
+        let duration = PgInterval::try_from(*duration).map_err(sqlx::Error::Decode)?;
 
         let res = sqlx::query_as::<_, Self>(
             r#"

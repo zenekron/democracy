@@ -35,7 +35,7 @@ impl Handler {
         interaction: &ApplicationCommandInteraction,
     ) -> Result<(), Error> {
         let action = ApplicationCommandAction::try_from(interaction)?;
-        action.execute(ctx, interaction).await
+        action.execute(ctx).await
     }
 
     async fn on_message_component_interaction(

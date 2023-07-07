@@ -2,6 +2,12 @@ use serenity::model::prelude::application_command::CommandDataOptionValue;
 
 #[derive(Debug, thiserror::Error)]
 pub enum ParseActionError {
+    #[error("action did not match the given input")]
+    MismatchedAction,
+
+    #[error("no matching action found for the given input")]
+    NoMatchingActionFound,
+
     #[error("")]
     InvalidInteractionKind,
 

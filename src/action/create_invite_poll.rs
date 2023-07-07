@@ -100,7 +100,10 @@ impl<'a> TryFrom<&'a Interaction> for CreateInvitePoll {
     fn try_from(value: &'a Interaction) -> Result<Self, Self::Error> {
         let interaction = value
             .as_application_command()
-            .ok_or(ParseActionError::InvalidInteractionKind)?;
+            .ok_or(ParseActionError::MismatchedAction)?;
+        if interaction.data.name != Self::ID {
+            return Err(ParseActionError::MismatchedAction);
+        }
 
         // options
         let mut user_id: Option<UserId> = None;

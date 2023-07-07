@@ -62,7 +62,10 @@ impl<'a> TryFrom<&'a Interaction> for SubmitInvitePollVote {
     fn try_from(value: &'a Interaction) -> Result<Self, Self::Error> {
         let interaction = value
             .as_message_component()
-            .ok_or(ParseActionError::InvalidInteractionKind)?;
+            .ok_or(ParseActionError::MismatchedAction)?;
+        if !interaction.data.custom_id.starts_with(Self::ID) {
+            return Err(ParseActionError::MismatchedAction);
+        }
 
         let invite_poll_id = {
             let field = interaction

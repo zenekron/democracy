@@ -76,7 +76,8 @@ impl Action for CreateInvitePoll {
         Ok(())
     }
 
-    fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicationCommand {
+    fn register() -> Option<CreateApplicationCommand> {
+        let mut command = CreateApplicationCommand::default();
         command
             .name(Self::ID)
             .description("Creates a petition to invite a new user")
@@ -90,7 +91,9 @@ impl Action for CreateInvitePoll {
                 opt.name(DURATION_OPTION_NAME)
                     .kind(CommandOptionType::String)
                     .description("Duration of the poll")
-            })
+            });
+
+        Some(command)
     }
 }
 

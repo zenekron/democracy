@@ -88,7 +88,8 @@ impl Action for Configure {
         Ok(())
     }
 
-    fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicationCommand {
+    fn register() -> Option<CreateApplicationCommand> {
+        let mut command = CreateApplicationCommand::default();
         command
             .name(Self::ID)
             .description("Configures the bot for the current guild")
@@ -105,7 +106,9 @@ impl Action for Configure {
                     .min_number_value(0.0)
                     .max_number_value(100.0)
                     .required(true)
-            })
+            });
+
+        Some(command)
     }
 }
 

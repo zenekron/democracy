@@ -9,10 +9,16 @@ macro_rules! create_actions {
 
         impl $name {
             pub fn register_all(commands: &mut serenity::builder::CreateApplicationCommands) -> &mut serenity::builder::CreateApplicationCommands {
+                $(
+                    if let Some(command) = $var::register() {
+                        commands.create_application_command(move |cmd| {
+                            *cmd = command;
+                            cmd
+                        });
+                    }
+                )+
+
                 commands
-                    $(
-                        .create_application_command($var::register)
-                    )+
             }
         }
 
@@ -28,7 +34,7 @@ macro_rules! create_actions {
                 }
             }
 
-            fn register(_command: &mut serenity::builder::CreateApplicationCommand) -> &mut serenity::builder::CreateApplicationCommand {
+            fn register() -> Option<serenity::builder::CreateApplicationCommand> {
                 std::unimplemented!("use `register_all` instead")
             }
         }

@@ -12,7 +12,7 @@ pub trait Action: for<'a> TryFrom<&'a Interaction, Error = ParseActionError> {
 
     async fn execute(&self, ctx: &Context) -> Result<(), Error>;
 
-    fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicationCommand {
-        command
+    fn register() -> Option<CreateApplicationCommand> {
+        None
     }
 }

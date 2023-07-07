@@ -11,4 +11,4 @@ mod error;
 mod submit_invite_poll_vote;
 mod util;
 
-create_actions!(Actions, Configure, CreateInvitePoll);
+create_actions!(Actions, Configure, CreateInvitePoll, SubmitInvitePollVote);

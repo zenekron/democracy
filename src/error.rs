@@ -4,9 +4,6 @@ use crate::{action::ParseActionError, entities::InvitePollId, util::serenity::Gu
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
-    #[error("unknown command `{0}`")]
-    UnknownCommand(String),
-
     #[error("could not find an invite poll with id `{0}`")]
     InvitePollNotFound(InvitePollId),
 

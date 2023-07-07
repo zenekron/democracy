@@ -8,8 +8,6 @@ use super::ParseActionError;
 
 #[async_trait]
 pub trait Action: for<'a> TryFrom<&'a Interaction, Error = ParseActionError> {
-    const ID: &'static str;
-
     async fn execute(&self, ctx: &Context) -> Result<(), Error>;
 
     fn register() -> Option<CreateApplicationCommand> {

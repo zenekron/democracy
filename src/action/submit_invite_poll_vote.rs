@@ -14,6 +14,7 @@ use crate::{
 
 use super::{Action, ParseActionError};
 
+const ACTION_ID: &'static str = "democracy.invite-poll-vote";
 const POLL_ID_FIELD_NAME: &'static str = "Poll Id";
 
 #[derive(Debug)]
@@ -27,8 +28,6 @@ pub struct SubmitInvitePollVote {
 
 #[async_trait]
 impl Action for SubmitInvitePollVote {
-    const ID: &'static str = "democracy.invite-poll-vote";
-
     async fn execute(&self, ctx: &Context) -> Result<(), Error> {
         // submit the vote
         let _invite_poll_vote_submission =
@@ -63,7 +62,7 @@ impl<'a> TryFrom<&'a Interaction> for SubmitInvitePollVote {
         let interaction = value
             .as_message_component()
             .ok_or(ParseActionError::MismatchedAction)?;
-        if !interaction.data.custom_id.starts_with(Self::ID) {
+        if !interaction.data.custom_id.starts_with(ACTION_ID) {
             return Err(ParseActionError::MismatchedAction);
         }
 
@@ -74,7 +73,7 @@ impl<'a> TryFrom<&'a Interaction> for SubmitInvitePollVote {
                 .iter()
                 .flat_map(|embed| embed.fields.iter())
                 .find(|field| field.name == POLL_ID_FIELD_NAME)
-                .ok_or(ParseActionError::MissingOption(Self::ID, "poll-id"))?;
+                .ok_or(ParseActionError::MissingOption(ACTION_ID, "poll-id"))?;
 
             let val = field.value.as_str();
             let val = val
@@ -84,7 +83,7 @@ impl<'a> TryFrom<&'a Interaction> for SubmitInvitePollVote {
                 .unwrap_or(val);
 
             val.parse::<InvitePollId>().map_err(|err| {
-                ParseActionError::InvalidOptionValue(Self::ID, "poll-id".to_string(), err.into())
+                ParseActionError::InvalidOptionValue(ACTION_ID, "poll-id".to_string(), err.into())
             })?
         };
 
@@ -92,17 +91,17 @@ impl<'a> TryFrom<&'a Interaction> for SubmitInvitePollVote {
             let vote = interaction
                 .data
                 .custom_id
-                .strip_prefix([Self::ID, "."].concat().as_str())
+                .strip_prefix([ACTION_ID, "."].concat().as_str())
                 .ok_or_else(|| {
                     ParseActionError::InvalidOptionValue(
-                        Self::ID,
+                        ACTION_ID,
                         "vote".into(),
                         "id did not match the current action's".into(),
                     )
                 })?;
 
             vote.parse::<InvitePollVote>().map_err(|err| {
-                ParseActionError::InvalidOptionValue(Self::ID, "vote".into(), err.into())
+                ParseActionError::InvalidOptionValue(ACTION_ID, "vote".into(), err.into())
             })?
         };
 

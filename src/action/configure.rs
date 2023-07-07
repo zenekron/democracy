@@ -21,6 +21,7 @@ use crate::{
 
 use super::{Action, ParseActionError};
 
+const ACTION_ID: &'static str = "configure";
 const INVITE_CHANNEL_ID_OPTION_NAME: &'static str = "invite-channel";
 const INVITE_POLL_QUORUM_OPTION_NAME: &'static str = "invite-poll-quorum";
 
@@ -34,8 +35,6 @@ pub struct Configure {
 
 #[async_trait]
 impl Action for Configure {
-    const ID: &'static str = "configure";
-
     async fn execute(&self, ctx: &Context) -> Result<(), Error> {
         trace!("{:?}", self);
         let pool = POOL.get().expect("the Pool to be initialized");
@@ -91,7 +90,7 @@ impl Action for Configure {
     fn register() -> Option<CreateApplicationCommand> {
         let mut command = CreateApplicationCommand::default();
         command
-            .name(Self::ID)
+            .name(ACTION_ID)
             .description("Configures the bot for the current guild")
             .create_option(|opt| {
                 opt.name(INVITE_CHANNEL_ID_OPTION_NAME)
@@ -119,7 +118,7 @@ impl<'a> TryFrom<&'a Interaction> for Configure {
         let interaction = value
             .as_application_command()
             .ok_or(ParseActionError::MismatchedAction)?;
-        if interaction.data.name != Self::ID {
+        if interaction.data.name != ACTION_ID {
             return Err(ParseActionError::MismatchedAction);
         }
 
@@ -130,25 +129,25 @@ impl<'a> TryFrom<&'a Interaction> for Configure {
         for opt in &interaction.data.options {
             match opt.name.as_str() {
                 name @ INVITE_CHANNEL_ID_OPTION_NAME => {
-                    let value = resolve_option!(&opt.resolved, Channel, name)?;
+                    let value = resolve_option!(ACTION_ID, &opt.resolved, Channel, name)?;
                     invite_channel_id = Some(value.id.into());
                 }
                 name @ INVITE_POLL_QUORUM_OPTION_NAME => {
-                    let value = resolve_option!(&opt.resolved, Number, name)?;
+                    let value = resolve_option!(ACTION_ID, &opt.resolved, Number, name)?;
                     invite_poll_quorum = Some(*value as f32);
                 }
                 other => {
-                    return Err(ParseActionError::UnknownOption(Self::ID, other.to_owned()));
+                    return Err(ParseActionError::UnknownOption(ACTION_ID, other.to_owned()));
                 }
             }
         }
 
         let invite_channel_id = invite_channel_id.ok_or(ParseActionError::MissingOption(
-            Self::ID,
+            ACTION_ID,
             INVITE_CHANNEL_ID_OPTION_NAME,
         ))?;
         let invite_poll_quorum = invite_poll_quorum.ok_or(ParseActionError::MissingOption(
-            Self::ID,
+            ACTION_ID,
             INVITE_POLL_QUORUM_OPTION_NAME,
         ))?;
 

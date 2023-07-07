@@ -20,6 +20,7 @@ use crate::{
 
 use super::{Action, ParseActionError};
 
+const ACTION_ID: &'static str = "invite";
 const USER_ID_OPTION_NAME: &'static str = "user-id";
 const DURATION_OPTION_NAME: &'static str = "duration";
 
@@ -33,8 +34,6 @@ pub struct CreateInvitePoll {
 
 #[async_trait]
 impl Action for CreateInvitePoll {
-    const ID: &'static str = "invite";
-
     async fn execute(&self, ctx: &Context) -> Result<(), Error> {
         let pool = POOL.get().expect("the Pool to be initialized");
         let mut transaction = pool.begin().await?;
@@ -79,7 +78,7 @@ impl Action for CreateInvitePoll {
     fn register() -> Option<CreateApplicationCommand> {
         let mut command = CreateApplicationCommand::default();
         command
-            .name(Self::ID)
+            .name(ACTION_ID)
             .description("Creates a petition to invite a new user")
             .create_option(|opt| {
                 opt.name(USER_ID_OPTION_NAME)
@@ -104,7 +103,7 @@ impl<'a> TryFrom<&'a Interaction> for CreateInvitePoll {
         let interaction = value
             .as_application_command()
             .ok_or(ParseActionError::MismatchedAction)?;
-        if interaction.data.name != Self::ID {
+        if interaction.data.name != ACTION_ID {
             return Err(ParseActionError::MismatchedAction);
         }
 
@@ -115,31 +114,31 @@ impl<'a> TryFrom<&'a Interaction> for CreateInvitePoll {
         for opt in &interaction.data.options {
             match opt.name.as_str() {
                 name @ USER_ID_OPTION_NAME => {
-                    let value = resolve_option!(&opt.resolved, String, name)?;
+                    let value = resolve_option!(ACTION_ID, &opt.resolved, String, name)?;
                     let value = value.parse::<UserId>().map_err(|err| {
-                        ParseActionError::InvalidOptionValue(Self::ID, name.into(), err.into())
+                        ParseActionError::InvalidOptionValue(ACTION_ID, name.into(), err.into())
                     })?;
                     user_id = Some(value);
                 }
                 name @ DURATION_OPTION_NAME => {
-                    let value = resolve_option!(&opt.resolved, String, name)?;
+                    let value = resolve_option!(ACTION_ID, &opt.resolved, String, name)?;
                     let value = humantime::parse_duration(value).map_err(|err| {
-                        ParseActionError::InvalidOptionValue(Self::ID, name.into(), err.into())
+                        ParseActionError::InvalidOptionValue(ACTION_ID, name.into(), err.into())
                     })?;
                     duration = Some(value);
                 }
                 other => {
-                    return Err(ParseActionError::UnknownOption(Self::ID, other.to_owned()));
+                    return Err(ParseActionError::UnknownOption(ACTION_ID, other.to_owned()));
                 }
             }
         }
 
         let user_id = user_id.ok_or(ParseActionError::MissingOption(
-            Self::ID,
+            ACTION_ID,
             USER_ID_OPTION_NAME,
         ))?;
         let duration = duration.ok_or(ParseActionError::MissingOption(
-            Self::ID,
+            ACTION_ID,
             USER_ID_OPTION_NAME,
         ))?;
 

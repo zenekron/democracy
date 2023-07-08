@@ -9,6 +9,15 @@ use crate::{
     POOL,
 };
 
+#[derive(Debug, thiserror::Error)]
+enum InvitePollFailureReason {
+    #[error("{0} users opposed")]
+    AtLeastOneOpposition(i64),
+
+    #[error("the quorum was not reached: {0}/{1} users voted")]
+    QuorumNotReached(i64, i64),
+}
+
 pub struct BackgroundPollHandler {
     ctx: Context,
     interval: Interval,
@@ -55,17 +64,32 @@ impl BackgroundPollHandler {
                     max
                 };
 
-                let outcome = {
-                    let required_votes =
-                        (guild_users as f32 * settings.invite_poll_quorum).ceil() as i64;
+                let (outcome, reason) = {
+                    let quorum = (guild_users as f32 * settings.invite_poll_quorum).ceil() as i64;
+                    let count = poll.no_count + poll.yes_count;
 
-                    if poll.no_count == 0 && poll.yes_count >= required_votes {
-                        InvitePollOutcome::Allow
+                    if poll.no_count > 0 {
+                        (
+                            InvitePollOutcome::Deny,
+                            Some(InvitePollFailureReason::AtLeastOneOpposition(poll.no_count)),
+                        )
+                    } else if count < quorum {
+                        (
+                            InvitePollOutcome::Deny,
+                            Some(InvitePollFailureReason::QuorumNotReached(count, quorum)),
+                        )
                     } else {
-                        InvitePollOutcome::Deny
+                        (InvitePollOutcome::Allow, None)
                     }
                 };
-                debug!("expired poll outcome: {:?}", outcome);
+                debug!(
+                    "expired poll outcome: {:?} {}",
+                    outcome,
+                    reason
+                        .as_ref()
+                        .map(|reason| reason.to_string())
+                        .unwrap_or_else(|| String::new())
+                );
 
                 if outcome == InvitePollOutcome::Allow {
                     let invite = settings
@@ -79,7 +103,9 @@ impl BackgroundPollHandler {
                         .await?;
                 }
 
-                poll.invite_poll.close(pool, outcome).await?;
+                poll.invite_poll
+                    .close(pool, outcome, reason.map(|r| r.to_string()))
+                    .await?;
 
                 match (&poll.invite_poll.channel_id, &poll.invite_poll.message_id) {
                     (Some(channel_id), Some(message_id)) => {

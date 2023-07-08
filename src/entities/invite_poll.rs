@@ -48,6 +48,7 @@ pub struct InvitePoll {
     pub channel_id: Option<ChannelId>,
     pub message_id: Option<MessageId>,
     pub outcome: Option<InvitePollOutcome>,
+    pub reason: Option<String>,
     pub ends_at: DateTime<Utc>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -111,6 +112,7 @@ impl InvitePoll {
         &mut self,
         executor: E,
         outcome: InvitePollOutcome,
+        reason: Option<String>,
     ) -> Result<(), Error>
     where
         E: Executor<'c, Database = Postgres>,
@@ -118,13 +120,14 @@ impl InvitePoll {
         let res = sqlx::query_as::<_, Self>(
             r#"
                 UPDATE invite_poll
-                SET outcome = $2
+                SET outcome = $2, reason = $3
                 WHERE id = $1
                 RETURNING *;
             "#,
         )
         .bind(&self.id)
         .bind(outcome)
+        .bind(reason)
         .fetch_one(executor)
         .await?;
 

@@ -23,8 +23,12 @@ pub mod emojis {
 
     // https://emojipedia.org/
     pub static CHECK_MARK: &str = "\u{2714}\u{FE0F}";
+    pub static CHECK_MARK_BUTTON: &str = "✅";
     pub static CROSS_MARK: &str = "\u{274C}";
     pub static LARGE_GREEN_CIRCLE: &str = "\u{1F7E2}";
     pub static LARGE_RED_CIRCLE: &str = "\u{1F534}";
     pub static LARGE_YELLOW_CIRCLE: &str = "\u{1F7E1}";
+    pub static NO_ENTRY: &str = "⛔";
+    pub static PROHIBITED: &str = "🚫";
+    pub static WARNING: &str = "⚠️";
 }

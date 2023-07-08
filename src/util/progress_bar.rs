@@ -43,9 +43,9 @@ impl Display for ProgressBar {
 
         match (self.with_count, self.with_percentage) {
             (false, false) => Ok(()),
-            (true, false) => write!(f, " [{}/{}]", self.value, self.max),
-            (false, true) => write!(f, " [{:.0}%]", percent),
-            (true, true) => write!(f, " [{}/{} · {:.0}%]", self.value, self.max, percent),
+            (true, false) => write!(f, " ({}/{})", self.value, self.max),
+            (false, true) => write!(f, " ({:.0}%)", percent),
+            (true, true) => write!(f, " ({}/{} · {:.0}%)", self.value, self.max, percent),
         }
     }
 }

@@ -66,8 +66,9 @@ impl InvitePollWithVoteCount {
 
             embed
                 .color(match self.invite_poll.outcome {
-                    Some(_) => colors::DISCORD_RED,
-                    None => colors::DISCORD_GREEN,
+                    Some(InvitePollOutcome::Allow) => colors::DISCORD_GREEN,
+                    Some(InvitePollOutcome::Deny) => colors::DISCORD_RED,
+                    None => colors::DISCORD_BLURPLE,
                 })
                 .title("Invite Poll")
                 .thumbnail(user.face());
@@ -83,9 +84,9 @@ impl InvitePollWithVoteCount {
                 .field(
                     "Status",
                     if self.invite_poll.outcome.is_none() {
-                        [emojis::LARGE_GREEN_CIRCLE, " Open"].concat()
+                        "Open"
                     } else {
-                        [emojis::LARGE_RED_CIRCLE, " Closed"].concat()
+                        "Closed"
                     },
                     true,
                 );
@@ -104,24 +105,28 @@ impl InvitePollWithVoteCount {
                         emojis::LARGE_GREEN_CIRCLE,
                         bar.value(self.yes_count).build().unwrap(),
                         emojis::LARGE_RED_CIRCLE,
-                        bar.value(self.no_count).build().unwrap(),
+                        bar.value(self.no_count).build().unwrap()
                     )
                 },
                 false,
             );
 
             // row
-            if let Some(outcome) = self.invite_poll.outcome {
-                embed.field(
-                    "Outcome",
-                    match outcome {
-                        InvitePollOutcome::Allow => {
-                            [emojis::CHECK_MARK_BUTTON, " Allowed"].concat()
-                        }
-                        InvitePollOutcome::Deny => [emojis::NO_ENTRY, " Denied"].concat(),
-                    },
-                    true,
-                );
+            {
+                if let Some(outcome) = self.invite_poll.outcome {
+                    embed.field(
+                        "Outcome",
+                        match outcome {
+                            InvitePollOutcome::Allow => {
+                                [emojis::CHECK_MARK_BUTTON, " Allowed"].concat()
+                            }
+                            InvitePollOutcome::Deny => [emojis::NO_ENTRY, " Denied"].concat(),
+                        },
+                        true,
+                    );
+                } else {
+                    embed.field("", "", true);
+                }
 
                 if let Some(reason) = self.invite_poll.reason.as_ref() {
                     embed.field("Reason", reason, true);

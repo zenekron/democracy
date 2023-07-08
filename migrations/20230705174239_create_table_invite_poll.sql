@@ -3,11 +3,11 @@
 CREATE TYPE invite_poll_outcome AS ENUM ('allow', 'deny');
 
 CREATE TABLE invite_poll (
-    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    guild_id varchar NOT NULL REFERENCES guild (id),
-    user_id varchar NOT NULL,
-    channel_id varchar,
-    message_id varchar,
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(), -- InvitePollId
+    guild_id varchar NOT NULL REFERENCES guild (id), -- GuildId
+    user_id varchar NOT NULL, -- UserId
+    channel_id varchar, -- ChannelId
+    message_id varchar, -- MessageId
     outcome invite_poll_outcome,
     ends_at timestamptz NOT NULL,
     created_at timestamptz NOT NULL DEFAULT now(),

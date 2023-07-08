@@ -79,7 +79,7 @@ impl BackgroundPollHandler {
                         .await?;
                 }
 
-                poll.invite_poll.close(outcome).await?;
+                poll.invite_poll.close(pool, outcome).await?;
 
                 match (&poll.invite_poll.channel_id, &poll.invite_poll.message_id) {
                     (Some(channel_id), Some(message_id)) => {

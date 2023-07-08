@@ -3,13 +3,12 @@ use std::{fmt::Display, str::FromStr, time::Duration};
 use base64::{display::Base64Display, Engine};
 use chrono::{DateTime, Utc};
 use serenity::model::prelude::Message;
-use sqlx::{postgres::types::PgInterval, PgExecutor};
+use sqlx::{postgres::types::PgInterval, Executor, PgExecutor, Postgres};
 use uuid::Uuid;
 
 use crate::{
     error::Error,
     util::serenity::{ChannelId, GuildId, MessageId, UserId},
-    POOL,
 };
 
 use super::InvitePollOutcome;
@@ -108,24 +107,28 @@ impl InvitePoll {
         Ok(())
     }
 
-    pub async fn close(&mut self, outcome: InvitePollOutcome) -> Result<(), Error> {
-        let pool = POOL.get().expect("the Pool to be initialized");
-
+    pub async fn close<'c, E>(
+        &mut self,
+        executor: E,
+        outcome: InvitePollOutcome,
+    ) -> Result<(), Error>
+    where
+        E: Executor<'c, Database = Postgres>,
+    {
         let res = sqlx::query_as::<_, Self>(
             r#"
                 UPDATE invite_poll
-                SET outcome = $1
-                WHERE id = $2
+                SET outcome = $2
+                WHERE id = $1
                 RETURNING *;
             "#,
         )
-        .bind(outcome)
         .bind(&self.id)
-        .fetch_one(pool)
+        .bind(outcome)
+        .fetch_one(executor)
         .await?;
 
-        let _ = std::mem::replace(self, res);
-
+        *self = res;
         Ok(())
     }
 }

@@ -7,6 +7,7 @@ edition = "2021"
 documentation = "https://github.com/zenekron/democracy"
 homepage = "https://github.com/zenekron/democracy"
 repository = "https://github.com/zenekron/democracy"
+publish = false
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -27,3 +28,6 @@ tokio = { version = "1.28.2", features = ["full"] }
 tracing = "0.1.37"
 tracing-subscriber = "0.3.17"
 uuid = { version = "1.4.0", features = ["v4"] }
+
+[package.metadata.release]
+pre-release-hook = ["./scripts/pre-release.sh", "{{crate_name}}", "{{version}}"]

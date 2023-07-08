@@ -6,6 +6,7 @@ use tokio::time::{interval, Interval};
 use crate::{
     entities::{Guild, InvitePollOutcome, InvitePollWithVoteCount},
     error::Error,
+    POOL,
 };
 
 pub struct BackgroundPollHandler {
@@ -22,6 +23,7 @@ impl BackgroundPollHandler {
     }
 
     pub async fn start(&mut self) -> Result<(), Error> {
+        let pool = POOL.get().expect("the Pool to be initialized");
         let http = &self.ctx.http;
 
         loop {
@@ -33,7 +35,7 @@ impl BackgroundPollHandler {
 
                 let guild = poll.invite_poll.guild_id.to_partial_guild(http).await?;
 
-                let settings = Guild::find_by_id(&poll.invite_poll.guild_id)
+                let settings = Guild::find_by_id(pool, &poll.invite_poll.guild_id)
                     .await?
                     .ok_or_else(|| Error::GuildNotFound(poll.invite_poll.guild_id.clone()))?;
 

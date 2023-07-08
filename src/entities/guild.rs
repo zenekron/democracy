@@ -4,12 +4,12 @@ use sqlx::{Executor, Postgres};
 use crate::{
     error::Error,
     util::serenity::{ChannelId, GuildId},
-    POOL,
 };
 
 #[derive(Debug, sqlx::FromRow)]
 pub struct Guild {
     pub id: GuildId,
+    /// The id of the channel users are going to be invited to.
     pub invite_channel_id: ChannelId,
     /// The minimum number of votes required to consider a vote valid (0.0 - 1.0).
     pub invite_poll_quorum: f32,
@@ -18,7 +18,7 @@ pub struct Guild {
 }
 
 impl Guild {
-    pub async fn create<'c, E>(
+    pub async fn create_or_update<'c, E>(
         executor: E,
         id: &GuildId,
         invite_channel_id: &ChannelId,
@@ -46,13 +46,20 @@ impl Guild {
         Ok(res)
     }
 
-    pub async fn find_by_id(id: &GuildId) -> Result<Option<Self>, Error> {
-        let pool = POOL.get().expect("the Pool to be initialized");
-
-        let res = sqlx::query_as::<_, Self>("SELECT * FROM guild WHERE id = $1;")
-            .bind(id)
-            .fetch_optional(pool)
-            .await?;
+    pub async fn find_by_id<'c, E>(executor: E, id: &GuildId) -> Result<Option<Self>, Error>
+    where
+        E: Executor<'c, Database = Postgres>,
+    {
+        let res = sqlx::query_as::<_, Self>(
+            r#"
+                SELECT *
+                FROM guild
+                WHERE id = $1;
+            "#,
+        )
+        .bind(id)
+        .fetch_optional(executor)
+        .await?;
 
         Ok(res)
     }

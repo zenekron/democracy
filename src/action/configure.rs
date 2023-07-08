@@ -40,7 +40,7 @@ impl Action for Configure {
         let pool = POOL.get().expect("the Pool to be initialized");
         let mut transaction = pool.begin().await?;
 
-        let guild = Guild::create(
+        let guild = Guild::create_or_update(
             &mut *transaction,
             &self.guild_id,
             &self.invite_channel_id,

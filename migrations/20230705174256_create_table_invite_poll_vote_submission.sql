@@ -3,8 +3,8 @@
 CREATE TYPE invite_poll_vote AS ENUM ('yes', 'no');
 
 CREATE TABLE invite_poll_vote_submission (
-    invite_poll_id uuid NOT NULL REFERENCES invite_poll (id),
-    user_id varchar NOT NULL,
+    invite_poll_id uuid NOT NULL REFERENCES invite_poll (id), -- InvitePollId
+    user_id varchar NOT NULL, -- UserId
     vote invite_poll_vote NOT NULL,
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now(),

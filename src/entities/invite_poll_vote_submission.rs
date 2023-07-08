@@ -1,6 +1,7 @@
 use chrono::{DateTime, Utc};
+use sqlx::{Executor, Postgres};
 
-use crate::{error::Error, util::serenity::UserId, POOL};
+use crate::{error::Error, util::serenity::UserId};
 
 use super::{InvitePollId, InvitePollVote};
 
@@ -14,12 +15,15 @@ pub struct InvitePollVoteSubmission {
 }
 
 impl InvitePollVoteSubmission {
-    pub async fn upsert(
+    pub async fn create_or_update<'c, E>(
+        executor: E,
         invite_poll_id: &InvitePollId,
         user_id: &UserId,
         vote: InvitePollVote,
-    ) -> Result<Self, Error> {
-        let pool = POOL.get().expect("the Pool to be initialized");
+    ) -> Result<Self, Error>
+    where
+        E: Executor<'c, Database = Postgres>,
+    {
         let res = sqlx::query_as::<_, Self>(
             r#"
                 INSERT INTO invite_poll_vote_submission (invite_poll_id, user_id, vote)
@@ -31,7 +35,7 @@ impl InvitePollVoteSubmission {
         .bind(invite_poll_id)
         .bind(user_id)
         .bind(vote)
-        .fetch_one(pool)
+        .fetch_one(executor)
         .await?;
 
         Ok(res)

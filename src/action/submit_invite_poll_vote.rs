@@ -10,6 +10,7 @@ use crate::{
     entities::{InvitePollId, InvitePollVote, InvitePollVoteSubmission, InvitePollWithVoteCount},
     error::Error,
     util::serenity::UserId,
+    POOL,
 };
 
 use super::{Action, ParseActionError};
@@ -29,13 +30,19 @@ pub struct SubmitInvitePollVote {
 #[async_trait]
 impl Action for SubmitInvitePollVote {
     async fn execute(&self, ctx: &Context) -> Result<(), Error> {
+        let pool = POOL.get().expect("the Pool to be initialized");
+
         // submit the vote
-        let _invite_poll_vote_submission =
-            InvitePollVoteSubmission::upsert(&self.invite_poll_id, &self.user_id, self.vote)
-                .await?;
+        let _invite_poll_vote_submission = InvitePollVoteSubmission::create_or_update(
+            pool,
+            &self.invite_poll_id,
+            &self.user_id,
+            self.vote,
+        )
+        .await?;
 
         // load the poll
-        let invite_poll = InvitePollWithVoteCount::find_by_id(&__self.invite_poll_id)
+        let invite_poll = InvitePollWithVoteCount::find_by_id(&self.invite_poll_id)
             .await?
             .ok_or_else(|| Error::InvitePollNotFound(self.invite_poll_id.to_owned()))?;
 

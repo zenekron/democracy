@@ -47,13 +47,12 @@ impl Action for SubmitInvitePollVote {
             .ok_or_else(|| Error::InvitePollNotFound(self.invite_poll_id.to_owned()))?;
 
         // re-render message
-        let render = invite_poll.create_renderer(ctx.clone()).await?;
+        let renderer = invite_poll.create_renderer(ctx.clone()).await?;
         self.interaction
             .create_interaction_response(&ctx.http, |resp| {
                 resp.kind(InteractionResponseType::UpdateMessage)
                     .interaction_response_data(|data| {
-                        render(&mut data.into());
-                        data
+                        renderer.render_create_interaction_response_data(data)
                     })
             })
             .await?;

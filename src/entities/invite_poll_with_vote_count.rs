@@ -57,20 +57,7 @@ impl InvitePollWithVoteCount {
         Ok(res)
     }
 
-    pub async fn create_renderer(
-        &self,
-        ctx: Context,
-    ) -> Result<
-        Box<
-            dyn for<'m, 'a, 'b> FnOnce(
-                    &'m mut MessageRenderer<'a, 'b>,
-                ) -> &'m mut MessageRenderer<'a, 'b>
-                + Send
-                + Sync
-                + '_,
-        >,
-        Error,
-    > {
+    pub async fn create_renderer(&self, ctx: Context) -> Result<MessageRenderer, Error> {
         let user = self.invite_poll.user_id.to_user(&ctx.http).await?;
 
         let embeds = vec![{
@@ -141,8 +128,9 @@ impl InvitePollWithVoteCount {
             }
         };
 
-        Ok(Box::new(move |message| {
-            message.set_embeds(embeds).set_components(components)
-        }))
+        let mut res = MessageRenderer::default();
+        res.set_components(components);
+        res.set_embeds(embeds);
+        Ok(res)
     }
 }

@@ -5,6 +5,48 @@ use serenity::builder::{
 };
 use sqlx::Postgres;
 
+#[derive(Debug, Default)]
+pub struct MessageRenderer {
+    components: Option<CreateComponents>,
+    embeds: Vec<CreateEmbed>,
+}
+
+impl MessageRenderer {
+    pub fn set_components(&mut self, components: CreateComponents) -> &mut Self {
+        self.components = Some(components);
+        self
+    }
+
+    pub fn set_embeds(&mut self, embeds: impl IntoIterator<Item = CreateEmbed>) -> &mut Self {
+        self.embeds = embeds.into_iter().collect();
+        self
+    }
+
+    pub fn render_create_interaction_response_data<'a, 'b>(
+        self,
+        data: &'a mut CreateInteractionResponseData<'b>,
+    ) -> &'a mut CreateInteractionResponseData<'b> {
+        if let Some(components) = self.components {
+            data.set_components(components);
+        }
+        data.set_embeds(self.embeds);
+
+        data
+    }
+
+    pub fn render_edit_message<'a, 'b>(
+        self,
+        data: &'a mut EditMessage<'b>,
+    ) -> &'a mut EditMessage<'b> {
+        if let Some(components) = self.components {
+            data.set_components(components);
+        }
+        data.set_embeds(self.embeds);
+
+        data
+    }
+}
+
 macro_rules! wrap_discord_id {
     ($id:ident) => {
         #[derive(Clone, Debug)]
@@ -73,48 +115,3 @@ wrap_discord_id!(GuildId);
 wrap_discord_id!(UserId);
 wrap_discord_id!(ChannelId);
 wrap_discord_id!(MessageId);
-
-pub enum MessageRenderer<'a, 'b> {
-    CreateInteractionResponseData(&'a mut CreateInteractionResponseData<'b>),
-    EditMessage(&'a mut EditMessage<'b>),
-}
-
-impl<'a, 'b> MessageRenderer<'a, 'b> {
-    pub fn set_components(&mut self, components: CreateComponents) -> &mut Self {
-        match self {
-            MessageRenderer::CreateInteractionResponseData(message) => {
-                message.set_components(components);
-            }
-            MessageRenderer::EditMessage(message) => {
-                message.set_components(components);
-            }
-        }
-
-        self
-    }
-
-    pub fn set_embeds(&mut self, embeds: impl IntoIterator<Item = CreateEmbed>) -> &mut Self {
-        match self {
-            MessageRenderer::CreateInteractionResponseData(message) => {
-                message.set_embeds(embeds);
-            }
-            MessageRenderer::EditMessage(message) => {
-                message.set_embeds(embeds.into_iter().collect());
-            }
-        }
-
-        self
-    }
-}
-
-impl<'a, 'b> From<&'a mut CreateInteractionResponseData<'b>> for MessageRenderer<'a, 'b> {
-    fn from(value: &'a mut CreateInteractionResponseData<'b>) -> Self {
-        Self::CreateInteractionResponseData(value)
-    }
-}
-
-impl<'a, 'b> From<&'a mut EditMessage<'b>> for MessageRenderer<'a, 'b> {
-    fn from(value: &'a mut EditMessage<'b>) -> Self {
-        Self::EditMessage(value)
-    }
-}

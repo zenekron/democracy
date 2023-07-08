@@ -52,14 +52,13 @@ impl Action for CreateInvitePoll {
             no_count: 0,
         };
 
-        let render = invite_poll.create_renderer(ctx.clone()).await?;
+        let renderer = invite_poll.create_renderer(ctx.clone()).await?;
         self.interaction
             .create_interaction_response(&ctx.http, |response| {
                 response
                     .kind(InteractionResponseType::ChannelMessageWithSource)
                     .interaction_response_data(|data| {
-                        render(&mut data.into());
-                        data
+                        renderer.render_create_interaction_response_data(data)
                     })
             })
             .await?;

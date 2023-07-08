@@ -83,11 +83,11 @@ impl BackgroundPollHandler {
 
                 match (&poll.invite_poll.channel_id, &poll.invite_poll.message_id) {
                     (Some(channel_id), Some(message_id)) => {
-                        let render = poll.create_renderer(self.ctx.clone()).await?;
+                        let renderer = poll.create_renderer(self.ctx.clone()).await?;
                         channel_id
                             .edit_message(http, message_id, |edit| {
-                                render(&mut edit.into());
-                                edit})
+                                renderer.render_edit_message(edit)
+                            })
                             .await?;
                     }
                     _ => error!("could not update poll {} because either the channel_id or message_id are missing", poll.invite_poll.id),

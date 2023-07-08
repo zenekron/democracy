@@ -16,7 +16,7 @@ use crate::{
 use super::{Action, ParseActionError};
 
 const ACTION_ID: &'static str = "democracy.invite-poll-vote";
-const POLL_ID_FIELD_NAME: &'static str = "Poll Id";
+pub const POLL_ID_FIELD_NAME: &'static str = "Poll Id";
 
 #[derive(Debug)]
 pub struct SubmitInvitePollVote {

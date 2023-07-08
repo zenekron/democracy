@@ -6,6 +6,7 @@ use serenity::{
 use sqlx::{Executor, Postgres};
 
 use crate::{
+    action::POLL_ID_FIELD_NAME,
     error::Error,
     util::{colors, emojis, serenity::MessageRenderer, ProgressBar},
 };
@@ -73,7 +74,11 @@ impl InvitePollWithVoteCount {
 
             // row 1
             embed
-                .field("Poll Id", format!("`{}`", self.invite_poll.id), true)
+                .field(
+                    POLL_ID_FIELD_NAME,
+                    format!("`{}`", self.invite_poll.id),
+                    true,
+                )
                 .field("User", &user.name, true)
                 .field(
                     "Status",

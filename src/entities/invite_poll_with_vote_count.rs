@@ -3,11 +3,11 @@ use serenity::{
     model::prelude::component::ButtonStyle,
     prelude::Context,
 };
+use sqlx::{Executor, Postgres};
 
 use crate::{
     error::Error,
     util::{colors, emojis, serenity::MessageRenderer, ProgressBar},
-    POOL,
 };
 
 use super::{InvitePoll, InvitePollId, InvitePollOutcome};
@@ -22,8 +22,10 @@ pub struct InvitePollWithVoteCount {
 }
 
 impl InvitePollWithVoteCount {
-    pub async fn find_by_id(id: &InvitePollId) -> Result<Option<Self>, Error> {
-        let pool = POOL.get().expect("the Pool to be initialized");
+    pub async fn find_by_id<'c, E>(executor: E, id: &InvitePollId) -> Result<Option<Self>, Error>
+    where
+        E: Executor<'c, Database = Postgres>,
+    {
         let res = sqlx::query_as::<_, Self>(
             r#"
                 SELECT *
@@ -32,15 +34,16 @@ impl InvitePollWithVoteCount {
             "#,
         )
         .bind(id)
-        .fetch_optional(pool)
+        .fetch_optional(executor)
         .await?;
 
         Ok(res)
     }
 
-    pub async fn find_expired() -> Result<Vec<Self>, Error> {
-        let pool = POOL.get().expect("the Pool to be initialized");
-
+    pub async fn find_expired<'c, E>(executor: E) -> Result<Vec<Self>, Error>
+    where
+        E: Executor<'c, Database = Postgres>,
+    {
         let res = sqlx::query_as::<_, Self>(
             r#"
                 SELECT *
@@ -48,17 +51,12 @@ impl InvitePollWithVoteCount {
                 WHERE outcome IS NULL AND ends_at <= now();
             "#,
         )
-        .fetch_all(pool)
+        .fetch_all(executor)
         .await?;
 
         Ok(res)
     }
-}
 
-///
-/// Discord
-///
-impl InvitePollWithVoteCount {
     pub async fn create_renderer(
         &self,
         ctx: Context,

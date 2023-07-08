@@ -29,7 +29,7 @@ impl BackgroundPollHandler {
         loop {
             self.interval.tick().await;
 
-            let polls = InvitePollWithVoteCount::find_expired().await?;
+            let polls = InvitePollWithVoteCount::find_expired(pool).await?;
             for mut poll in polls {
                 debug!("expired poll: {:?}", poll);
 

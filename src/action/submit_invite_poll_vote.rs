@@ -42,7 +42,7 @@ impl Action for SubmitInvitePollVote {
         .await?;
 
         // load the poll
-        let invite_poll = InvitePollWithVoteCount::find_by_id(&self.invite_poll_id)
+        let invite_poll = InvitePollWithVoteCount::find_by_id(pool, &self.invite_poll_id)
             .await?
             .ok_or_else(|| Error::InvitePollNotFound(self.invite_poll_id.to_owned()))?;
 

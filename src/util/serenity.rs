@@ -1,4 +1,4 @@
-use std::{ops::Deref, str::FromStr};
+use std::{fmt::Display, ops::Deref, str::FromStr};
 
 use serenity::builder::{
     CreateComponents, CreateEmbed, CreateInteractionResponseData, EditMessage,
@@ -115,3 +115,9 @@ wrap_discord_id!(GuildId);
 wrap_discord_id!(UserId);
 wrap_discord_id!(ChannelId);
 wrap_discord_id!(MessageId);
+
+impl Display for UserId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "<@{}>", self.0.as_u64())
+    }
+}

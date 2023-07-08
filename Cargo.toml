@@ -1,7 +1,12 @@
 [package]
 name = "democracy"
+description = "A community oriented Discord bot."
 version = "0.1.0"
+license = "UNLICENSED"
 edition = "2021"
+documentation = "https://github.com/zenekron/democracy"
+homepage = "https://github.com/zenekron/democracy"
+repository = "https://github.com/zenekron/democracy"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

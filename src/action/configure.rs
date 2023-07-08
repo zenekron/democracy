@@ -74,7 +74,7 @@ impl Action for Configure {
                                     )
                                     .field(
                                         "Required Votes",
-                                        format!("{:.0}%", guild.invite_poll_quorum() * 100.0),
+                                        format!("{:.0}%", guild.invite_poll_quorum * 100.0),
                                         true,
                                     )
                             })
@@ -100,10 +100,10 @@ impl Action for Configure {
             })
             .create_option(|opt| {
                 opt.name(INVITE_POLL_QUORUM_OPTION_NAME)
-                    .kind(CommandOptionType::Number)
+                    .kind(CommandOptionType::Integer)
                     .description("The minimum amount of votes required")
-                    .min_number_value(0.0)
-                    .max_number_value(100.0)
+                    .min_int_value(0)
+                    .max_int_value(100)
                     .required(true)
             });
 
@@ -133,8 +133,9 @@ impl<'a> TryFrom<&'a Interaction> for Configure {
                     invite_channel_id = Some(value.id.into());
                 }
                 name @ INVITE_POLL_QUORUM_OPTION_NAME => {
-                    let value = resolve_option!(ACTION_ID, &opt.resolved, Number, name)?;
-                    invite_poll_quorum = Some(*value as f32);
+                    let value = resolve_option!(ACTION_ID, &opt.resolved, Integer, name)?;
+                    let value = ((*value).clamp(0, 100) as f32) / 100.0;
+                    invite_poll_quorum = Some(value);
                 }
                 other => {
                     return Err(ParseActionError::UnknownOption(ACTION_ID, other.to_owned()));

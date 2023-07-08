@@ -11,17 +11,13 @@ use crate::{
 pub struct Guild {
     pub id: GuildId,
     pub invite_channel_id: ChannelId,
-    /// The minimum number of votes required to consider a vote valid (0-100).
-    invite_poll_quorum: f32,
+    /// The minimum number of votes required to consider a vote valid (0.0 - 1.0).
+    pub invite_poll_quorum: f32,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
 
 impl Guild {
-    pub fn invite_poll_quorum(&self) -> f32 {
-        self.invite_poll_quorum.clamp(0.0, 100.0) / 100.0
-    }
-
     pub async fn create<'c, E>(
         executor: E,
         id: &GuildId,

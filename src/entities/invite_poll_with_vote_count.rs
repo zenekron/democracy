@@ -72,7 +72,7 @@ impl InvitePollWithVoteCount {
                 .title("Invite Poll")
                 .thumbnail(user.face());
 
-            // row 1
+            // row
             embed
                 .field(
                     POLL_ID_FIELD_NAME,
@@ -82,15 +82,15 @@ impl InvitePollWithVoteCount {
                 .field("User", &user.name, true)
                 .field(
                     "Status",
-                    match self.invite_poll.outcome {
-                        Some(InvitePollOutcome::Allow) => [emojis::CHECK_MARK, " Allowed"].concat(),
-                        Some(InvitePollOutcome::Deny) => [emojis::CROSS_MARK, " Denied"].concat(),
-                        None => [emojis::LARGE_GREEN_CIRCLE, " Pending"].concat(),
+                    if self.invite_poll.outcome.is_none() {
+                        [emojis::LARGE_GREEN_CIRCLE, " Open"].concat()
+                    } else {
+                        [emojis::LARGE_RED_CIRCLE, " Closed"].concat()
                     },
                     true,
                 );
 
-            // row 2
+            // row
             embed.field(
                 "Votes",
                 {
@@ -109,6 +109,26 @@ impl InvitePollWithVoteCount {
                 },
                 false,
             );
+
+            // row
+            if let Some(outcome) = self.invite_poll.outcome {
+                embed.field(
+                    "Outcome",
+                    match outcome {
+                        InvitePollOutcome::Allow => {
+                            [emojis::CHECK_MARK_BUTTON, " Allowed"].concat()
+                        }
+                        InvitePollOutcome::Deny => [emojis::NO_ENTRY, " Denied"].concat(),
+                    },
+                    true,
+                );
+
+                if let Some(reason) = self.invite_poll.reason.as_ref() {
+                    embed.field("Reason", reason, true);
+                } else {
+                    embed.field("", "", true);
+                }
+            }
 
             embed
         }];

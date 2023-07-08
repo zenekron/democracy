@@ -18,7 +18,7 @@ impl Handler {
     async fn on_ready(&self, ctx: Context, _ready: &Ready) -> Result<(), Error> {
         Command::set_global_application_commands(&ctx.http, Actions::register_all).await?;
 
-        BackgroundPollHandler::new(ctx, Duration::from_secs(60))
+        BackgroundPollHandler::new(ctx, Duration::from_secs(10))
             .start()
             .await?;
         Ok(())

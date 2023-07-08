@@ -1,5 +1,6 @@
-pub use self::progress_bar::*;
+pub use self::{discord_timestamp::*, progress_bar::*};
 
+mod discord_timestamp;
 mod progress_bar;
 pub mod serenity;
 

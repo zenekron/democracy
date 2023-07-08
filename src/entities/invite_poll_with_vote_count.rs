@@ -8,7 +8,10 @@ use sqlx::{Executor, Postgres};
 use crate::{
     action::POLL_ID_FIELD_NAME,
     error::Error,
-    util::{colors, emojis, serenity::MessageRenderer, ProgressBar},
+    util::{
+        colors, emojis, serenity::MessageRenderer, DiscordTimestamp, DiscordTimestampStyle,
+        ProgressBar,
+    },
 };
 
 use super::{InvitePoll, InvitePollId, InvitePollOutcome};
@@ -87,6 +90,33 @@ impl InvitePollWithVoteCount {
                         "Open"
                     } else {
                         "Closed"
+                    },
+                    true,
+                );
+
+            // row
+            embed
+                .field(
+                    "Created At",
+                    DiscordTimestamp::new(
+                        self.invite_poll.created_at,
+                        DiscordTimestampStyle::FullShort,
+                    ),
+                    true,
+                )
+                .field(
+                    "Ends At",
+                    {
+                        let ts = DiscordTimestamp::new(
+                            self.invite_poll.ends_at,
+                            DiscordTimestampStyle::FullShort,
+                        );
+
+                        format!(
+                            "{} ({})",
+                            ts,
+                            ts.with_style(DiscordTimestampStyle::Relative)
+                        )
                     },
                     true,
                 );

@@ -39,7 +39,7 @@ impl EventHandler for Handler {
     async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
         debug!("interaction: {:?}", interaction);
 
-        match __self.on_interaction(ctx, interaction).await {
+        match self.on_interaction(ctx, interaction).await {
             Ok(()) => {}
             Err(err) => error!("{0}: {0:?}", err),
         }

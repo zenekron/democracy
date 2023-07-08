@@ -28,7 +28,8 @@ const DURATION_OPTION_NAME: &'static str = "duration";
 pub struct CreateInvitePoll {
     interaction: ApplicationCommandInteraction,
     guild_id: GuildId,
-    user_id: UserId,
+    inviter: UserId,
+    invitee: UserId,
     duration: Duration,
 }
 
@@ -41,7 +42,8 @@ impl Action for CreateInvitePoll {
         let invite_poll = InvitePoll::create(
             &mut *transaction,
             &self.guild_id,
-            &self.user_id,
+            &self.inviter,
+            &self.invitee,
             &self.duration,
         )
         .await?;
@@ -149,7 +151,8 @@ impl<'a> TryFrom<&'a Interaction> for CreateInvitePoll {
         Ok(Self {
             interaction: interaction.clone(),
             guild_id,
-            user_id,
+            inviter: interaction.user.id.into(),
+            invitee: user_id,
             duration,
         })
     }

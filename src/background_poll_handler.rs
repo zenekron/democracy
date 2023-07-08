@@ -97,10 +97,17 @@ impl BackgroundPollHandler {
                         .create_invite(http, |invite| invite.unique(true).max_uses(1))
                         .await?;
 
-                    let pm = poll.invite_poll.user_id.create_dm_channel(http).await?;
+                    let pm = poll.invite_poll.invitee.create_dm_channel(http).await?;
 
-                    pm.send_message(http, |msg| msg.content(invite.url()))
-                        .await?;
+                    pm.send_message(http, |msg| {
+                        msg.content(format!(
+                            "Hello! You have been invited by {} to **{}**!\nAccept the following invite to join them!\n{}",
+                            poll.invite_poll.inviter,
+                            guild.name,
+                            invite.url()
+                        ))
+                    })
+                    .await?;
                 }
 
                 poll.invite_poll

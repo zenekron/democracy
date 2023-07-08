@@ -44,7 +44,8 @@ impl FromStr for InvitePollId {
 pub struct InvitePoll {
     pub id: InvitePollId,
     pub guild_id: GuildId,
-    pub user_id: UserId,
+    pub inviter: UserId,
+    pub invitee: UserId,
     pub channel_id: Option<ChannelId>,
     pub message_id: Option<MessageId>,
     pub outcome: Option<InvitePollOutcome>,
@@ -58,7 +59,8 @@ impl InvitePoll {
     pub async fn create<'e, E>(
         executor: E,
         guild_id: &GuildId,
-        user_id: &UserId,
+        inviter: &UserId,
+        invitee: &UserId,
         duration: &Duration,
     ) -> Result<Self, Error>
     where
@@ -68,13 +70,14 @@ impl InvitePoll {
 
         let res = sqlx::query_as::<_, Self>(
             r#"
-                INSERT INTO invite_poll (guild_id, user_id, ends_at)
-                VALUES ($1, $2, now() + $3)
+                INSERT INTO invite_poll (guild_id, inviter, invitee, ends_at)
+                VALUES ($1, $2, $3, now() + $4)
                 RETURNING *;
             "#,
         )
         .bind(guild_id)
-        .bind(user_id)
+        .bind(inviter)
+        .bind(invitee)
         .bind(duration)
         .fetch_one(executor)
         .await?;

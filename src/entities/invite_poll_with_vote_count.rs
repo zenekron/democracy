@@ -62,7 +62,7 @@ impl InvitePollWithVoteCount {
     }
 
     pub async fn create_renderer(&self, ctx: Context) -> Result<MessageRenderer, Error> {
-        let user = self.invite_poll.user_id.to_user(&ctx.http).await?;
+        let user = self.invite_poll.invitee.to_user(&ctx.http).await?;
 
         let embeds = vec![{
             let mut embed = CreateEmbed::default();

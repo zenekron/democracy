@@ -2,7 +2,7 @@
 name = "democracy"
 description = "A community oriented Discord bot."
 version = "0.1.0"
-license = "UNLICENSED"
+license = "MIT OR Apache-2.0"
 edition = "2021"
 documentation = "https://github.com/zenekron/democracy"
 homepage = "https://github.com/zenekron/democracy"

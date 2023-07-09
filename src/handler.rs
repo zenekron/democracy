@@ -20,7 +20,7 @@ impl Handler {
 
         BackgroundPollHandler::new(ctx, Duration::from_secs(10))
             .start()
-            .await?;
+            .await;
         Ok(())
     }
 

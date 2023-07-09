@@ -3,3 +3,8 @@
 
 # rust
 /target
+
+# terraform
+.terraform*
+*.tfplan
+*.tfstate*

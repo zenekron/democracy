@@ -1,6 +1,9 @@
 use std::time::Duration;
 
-use serenity::{model::prelude::UserId, prelude::Context};
+use serenity::{
+    model::prelude::UserId,
+    prelude::{Context, HttpError},
+};
 use sqlx::PgPool;
 use tokio::time::{interval, Interval};
 
@@ -11,12 +14,15 @@ use crate::{
 };
 
 #[derive(Debug, thiserror::Error)]
-enum InvitePollFailureReason {
+enum InvitePollMessage {
     #[error("{0} users opposed")]
     AtLeastOneOpposition(i64),
 
     #[error("the quorum was not reached: {0}/{1} users voted")]
     QuorumNotReached(i64, i64),
+
+    #[error("{0}")]
+    InviteUrl(String),
 }
 
 pub struct BackgroundPollHandler {
@@ -47,7 +53,7 @@ impl BackgroundPollHandler {
     async fn tick(&self, pool: &PgPool) -> Result<(), Error> {
         let polls = InvitePollWithVoteCount::find_expired(pool).await?;
         for mut poll in polls {
-            match self.tick_poll(pool, &mut poll).await {
+            match self.close_poll(pool, &mut poll).await {
                 Ok(()) => {}
                 Err(err) => error!(
                     "failed to tick expired poll {}: {:?}",
@@ -60,19 +66,21 @@ impl BackgroundPollHandler {
         Ok(())
     }
 
-    async fn tick_poll(
+    async fn close_poll(
         &self,
-        pool: &sqlx::Pool<sqlx::Postgres>,
+        pool: &PgPool,
         poll: &mut InvitePollWithVoteCount,
     ) -> Result<(), Error> {
         let http = &self.ctx.http;
 
-        debug!("expired poll: {:?}", poll);
+        debug!("closing poll {:?}", poll);
+
         let guild = poll.invite_poll.guild_id.to_partial_guild(http).await?;
         let settings = Guild::find_by_id(pool, &poll.invite_poll.guild_id)
             .await?
             .ok_or_else(|| Error::GuildNotFound(poll.invite_poll.guild_id.clone()))?;
-        let guild_users = {
+
+        let guild_user_count = {
             let mut max = 0_usize;
             let mut after: Option<UserId> = None;
             loop {
@@ -87,33 +95,38 @@ impl BackgroundPollHandler {
 
             max
         };
-        let (outcome, reason) = {
-            let quorum = (guild_users as f32 * settings.invite_poll_quorum).ceil() as i64;
+
+        let (outcome, mut message) = {
+            let quorum = (guild_user_count as f32 * settings.invite_poll_quorum).ceil() as i64;
             let count = poll.no_count + poll.yes_count;
 
             if poll.no_count > 0 {
                 (
                     InvitePollOutcome::Deny,
-                    Some(InvitePollFailureReason::AtLeastOneOpposition(poll.no_count)),
+                    Some(InvitePollMessage::AtLeastOneOpposition(poll.no_count)),
                 )
             } else if count < quorum {
                 (
                     InvitePollOutcome::Deny,
-                    Some(InvitePollFailureReason::QuorumNotReached(count, quorum)),
+                    Some(InvitePollMessage::QuorumNotReached(count, quorum)),
                 )
             } else {
                 (InvitePollOutcome::Allow, None)
             }
         };
+
         debug!(
-            "expired poll outcome: {:?} {}",
+            "closing poll {} with outcome {:?} and message {}",
+            poll.invite_poll.id,
             outcome,
-            reason
+            message
                 .as_ref()
-                .map(|reason| reason.to_string())
-                .unwrap_or_else(|| String::new())
+                .map(|r| r.to_string())
+                .unwrap_or("".to_string())
         );
+
         if outcome == InvitePollOutcome::Allow {
+            // try sending the server invite directly to the user
             let invite = settings
                 .invite_channel_id
                 .create_invite(http, |invite| invite.unique(true).max_uses(1))
@@ -121,7 +134,7 @@ impl BackgroundPollHandler {
 
             let pm = poll.invite_poll.invitee.create_dm_channel(http).await?;
 
-            pm.send_message(http, |msg| {
+            let res = pm.send_message(http, |msg| {
                     msg.content(format!(
                         "Hello! You have been invited by {} to **{}**!\nAccept the following invite to join them!\n{}",
                         poll.invite_poll.inviter,
@@ -129,21 +142,37 @@ impl BackgroundPollHandler {
                         invite.url()
                     ))
                 })
-                .await?;
-        }
-        poll.invite_poll
-            .close(pool, outcome, reason.map(|r| r.to_string()))
-            .await?;
-        Ok(match (&poll.invite_poll.channel_id, &poll.invite_poll.message_id) {
-                (Some(channel_id), Some(message_id)) => {
-                    let renderer = poll.create_renderer(self.ctx.clone()).await?;
-                    channel_id
-                        .edit_message(http, message_id, |edit| {
-                            renderer.render_edit_message(edit)
-                        })
-                        .await?;
+                .await;
+
+            match res {
+                Ok(_) => Ok(()),
+                Err(serenity::Error::Http(err)) if matches!(&*err, HttpError::UnsuccessfulRequest(resp) if resp.error.code == 50007) =>
+                {
+                    // fall back to setting the poll message to the invite url
+                    message = Some(InvitePollMessage::InviteUrl(invite.url()));
+                    Ok(())
                 }
-                _ => error!("could not update poll {} because either the channel_id or message_id are missing", poll.invite_poll.id),
-            })
+                Err(err) => Err(err),
+            }?;
+        }
+
+        poll.invite_poll
+            .close(pool, outcome, message.map(|r| r.to_string()))
+            .await?;
+
+        match (&poll.invite_poll.channel_id, &poll.invite_poll.message_id) {
+            (Some(channel_id), Some(message_id)) => {
+                let renderer = poll.create_renderer(self.ctx.clone()).await?;
+                channel_id
+                    .edit_message(http, message_id, |edit| renderer.render_edit_message(edit))
+                    .await?;
+            }
+            _ => error!(
+                "could not update poll {} because either the `channel_id` or `message_id` are missing",
+                poll.invite_poll.id
+            ),
+        }
+
+        Ok(())
     }
 }

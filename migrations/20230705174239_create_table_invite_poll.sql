@@ -10,7 +10,7 @@ CREATE TABLE invite_poll (
     channel_id varchar, -- ChannelId
     message_id varchar, -- MessageId
     outcome invite_poll_outcome,
-    reason varchar,
+    message varchar,
     ends_at timestamptz NOT NULL,
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now()

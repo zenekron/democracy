@@ -158,8 +158,16 @@ impl InvitePollWithVoteCount {
                     embed.field("", "", true);
                 }
 
-                if let Some(reason) = self.invite_poll.reason.as_ref() {
-                    embed.field("Reason", reason, true);
+                if let Some(message) = self.invite_poll.message.as_ref() {
+                    embed.field(
+                        match self.invite_poll.outcome {
+                            Some(InvitePollOutcome::Allow) => "Invite",
+                            Some(InvitePollOutcome::Deny) => "Reason",
+                            None => "",
+                        },
+                        message,
+                        true,
+                    );
                 } else {
                     embed.field("", "", true);
                 }

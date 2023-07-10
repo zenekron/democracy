@@ -1,0 +1,10 @@
+services:
+  database:
+    image: "postgres:15.3"
+    restart: "unless-stopped"
+    environment:
+      POSTGRES_USER: "postgres"
+      POSTGRES_PASSWORD: "postgres"
+      POSTGRES_DB: "democracy"
+    ports:
+      - "5432:5432/tcp"

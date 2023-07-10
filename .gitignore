@@ -1,0 +1,10 @@
+.env
+.envrc
+
+# rust
+/target
+
+# terraform
+.terraform*
+*.tfplan
+*.tfstate*

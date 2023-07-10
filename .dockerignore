@@ -1,0 +1,11 @@
+.env
+.envrc
+
+# docker
+/.dockerignore
+/.git
+/Dockerfile
+/docs
+
+# rust
+/target

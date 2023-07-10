@@ -33,7 +33,7 @@ run() {
 
 build_image() {
 	local tag="$CRATE_NAME:$NEW_VERSION"
-	run docker builx build --tag "$tag" "$WORKSPACE_ROOT"
+	run docker buildx build --tag "$tag" "$WORKSPACE_ROOT"
 
 	if [[ -n "$DEMOCRACY_REGISTRY" ]]; then
 		run docker image tag "$tag" "$DEMOCRACY_REGISTRY/$tag"

@@ -45,8 +45,9 @@ resource "kubernetes_deployment_v1" "democracy" {
 
       spec {
         container {
-          name  = "democracy"
-          image = var.democracy_image
+          name              = "democracy"
+          image             = var.democracy_image
+          image_pull_policy = "Always"
 
           env {
             name  = "RUST_LOG"

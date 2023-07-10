@@ -43,6 +43,7 @@ build_image() {
 
 generate_changelog() {
 	run git cliff --output "CHANGELOG.md" --tag "$NEW_VERSION"
+	run git add "CHANGELOG.md"
 }
 
 

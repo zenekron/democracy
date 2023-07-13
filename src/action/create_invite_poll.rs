@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use serenity::{
     async_trait,
-    builder::CreateApplicationCommand,
+    builder::CreateApplicationCommands,
     model::{
         application::interaction::application_command::ApplicationCommandInteraction,
         prelude::{command::CommandOptionType, Interaction, InteractionResponseType},
@@ -76,24 +76,23 @@ impl Action for CreateInvitePoll {
         Ok(())
     }
 
-    fn register() -> Option<CreateApplicationCommand> {
-        let mut command = CreateApplicationCommand::default();
-        command
-            .name(ACTION_ID)
-            .description("Creates a petition to invite a new user")
-            .create_option(|opt| {
-                opt.name(USER_ID_OPTION_NAME)
-                    .kind(CommandOptionType::String)
-                    .description("The ID of the user to invite")
-                    .required(true)
-            })
-            .create_option(|opt| {
-                opt.name(DURATION_OPTION_NAME)
-                    .kind(CommandOptionType::String)
-                    .description("Duration of the poll")
-            });
-
-        Some(command)
+    fn register(commands: &mut CreateApplicationCommands) -> &mut CreateApplicationCommands {
+        commands.create_application_command(|command| {
+            command
+                .name(ACTION_ID)
+                .description("Creates a petition to invite a new user")
+                .create_option(|opt| {
+                    opt.name(USER_ID_OPTION_NAME)
+                        .kind(CommandOptionType::String)
+                        .description("The ID of the user to invite")
+                        .required(true)
+                })
+                .create_option(|opt| {
+                    opt.name(DURATION_OPTION_NAME)
+                        .kind(CommandOptionType::String)
+                        .description("Duration of the poll")
+                })
+        })
     }
 }
 

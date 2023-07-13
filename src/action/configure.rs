@@ -1,6 +1,6 @@
 use serenity::{
     async_trait,
-    builder::CreateApplicationCommand,
+    builder::CreateApplicationCommands,
     model::prelude::{
         application_command::ApplicationCommandInteraction, command::CommandOptionType, Channel,
         Interaction, InteractionResponseType,
@@ -87,27 +87,26 @@ impl Action for Configure {
         Ok(())
     }
 
-    fn register() -> Option<CreateApplicationCommand> {
-        let mut command = CreateApplicationCommand::default();
-        command
-            .name(ACTION_ID)
-            .description("Configures the bot for the current guild")
-            .create_option(|opt| {
-                opt.name(INVITE_CHANNEL_ID_OPTION_NAME)
-                    .kind(CommandOptionType::Channel)
-                    .description("Which channels users should be invited to")
-                    .required(true)
-            })
-            .create_option(|opt| {
-                opt.name(INVITE_POLL_QUORUM_OPTION_NAME)
-                    .kind(CommandOptionType::Integer)
-                    .description("The minimum amount of votes required")
-                    .min_int_value(0)
-                    .max_int_value(100)
-                    .required(true)
-            });
-
-        Some(command)
+    fn register(commands: &mut CreateApplicationCommands) -> &mut CreateApplicationCommands {
+        commands.create_application_command(|command| {
+            command
+                .name(ACTION_ID)
+                .description("Configures the bot for the current guild")
+                .create_option(|opt| {
+                    opt.name(INVITE_CHANNEL_ID_OPTION_NAME)
+                        .kind(CommandOptionType::Channel)
+                        .description("Which channels users should be invited to")
+                        .required(true)
+                })
+                .create_option(|opt| {
+                    opt.name(INVITE_POLL_QUORUM_OPTION_NAME)
+                        .kind(CommandOptionType::Integer)
+                        .description("The minimum amount of votes required")
+                        .min_int_value(0)
+                        .max_int_value(100)
+                        .required(true)
+                })
+        })
     }
 }
 

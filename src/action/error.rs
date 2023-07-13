@@ -29,4 +29,10 @@ pub enum ParseActionError {
 
     #[error("invalid value for option `{1}` of command `{0}`: `{2}`")]
     InvalidOptionValue(&'static str, String, Box<dyn std::error::Error>),
+
+    //
+    // permissions
+    //
+    #[error("insufficient permissions")]
+    InsufficientPermissions,
 }

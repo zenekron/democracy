@@ -121,6 +121,17 @@ impl<'a> TryFrom<&'a Interaction> for Configure {
             return Err(ParseActionError::MismatchedAction);
         }
 
+        // check permissions
+        let permissions = interaction
+            .member
+            .as_ref()
+            .ok_or(ParseActionError::InsufficientPermissions)?
+            .permissions
+            .ok_or(ParseActionError::InsufficientPermissions)?;
+        if !permissions.administrator() {
+            return Err(ParseActionError::InsufficientPermissions);
+        }
+
         // options
         let mut invite_channel_id: Option<ChannelId> = None;
         let mut invite_poll_quorum: Option<f32> = None;

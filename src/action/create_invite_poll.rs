@@ -14,7 +14,7 @@ use crate::{
     entities::{InvitePoll, InvitePollWithVoteCount},
     error::Error,
     resolve_option,
-    util::serenity::{GuildId, UserId},
+    util::serenity::{GuildExt, GuildId, UserId},
     POOL,
 };
 
@@ -39,6 +39,13 @@ impl Action for CreateInvitePoll {
         let pool = POOL.get().expect("the Pool to be initialized");
         let mut transaction = pool.begin().await?;
 
+        // preliminary checks
+        let guild = self.guild_id.to_partial_guild(&ctx.http).await?;
+        if guild.is_member(&ctx.http, &self.invitee).await? {
+            return Err(Error::CannotInviteMember(self.invitee.clone()));
+        }
+
+        // create poll
         let invite_poll = InvitePoll::create(
             &mut *transaction,
             &self.guild_id,
@@ -48,6 +55,7 @@ impl Action for CreateInvitePoll {
         )
         .await?;
 
+        // render poll
         let mut invite_poll = InvitePollWithVoteCount {
             invite_poll,
             yes_count: 0,
@@ -65,6 +73,7 @@ impl Action for CreateInvitePoll {
             })
             .await?;
 
+        // embed `message_id` into the `InvitePoll`
         let message = self.interaction.get_interaction_response(&ctx.http).await?;
         invite_poll
             .invite_poll

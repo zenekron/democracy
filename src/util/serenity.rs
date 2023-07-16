@@ -6,10 +6,37 @@ use serenity::{
         CreateComponents, CreateEmbed, CreateInteractionResponse, CreateInteractionResponseData,
         EditMessage,
     },
-    http::Http,
-    model::prelude::Interaction,
+    http::{CacheHttp, Http, StatusCode},
+    model::prelude::{Interaction, PartialGuild},
 };
 use sqlx::Postgres;
+
+#[async_trait]
+pub trait GuildExt {
+    async fn is_member(
+        &self,
+        cache_http: impl CacheHttp,
+        user_id: impl Into<serenity::model::id::UserId> + Send,
+    ) -> Result<bool, serenity::Error>;
+}
+
+#[async_trait]
+impl GuildExt for PartialGuild {
+    async fn is_member(
+        &self,
+        cache_http: impl CacheHttp,
+        user_id: impl Into<serenity::model::id::UserId> + Send,
+    ) -> Result<bool, serenity::Error> {
+        let res = self.member(cache_http, user_id.into()).await;
+        match res {
+            Ok(_) => Ok(true),
+            Err(ref err) if matches!(err, serenity::Error::Http(http) if http.status_code() == Some(StatusCode::NOT_FOUND)) => {
+                Ok(false)
+            }
+            Err(err) => Err(err),
+        }
+    }
+}
 
 #[async_trait]
 pub trait InteractionExt {

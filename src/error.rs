@@ -1,6 +1,10 @@
 use serenity::model::prelude::UserIdParseError;
 
-use crate::{action::ParseActionError, entities::InvitePollId, util::serenity::GuildId};
+use crate::{
+    action::ParseActionError,
+    entities::InvitePollId,
+    util::serenity::{GuildId, UserId},
+};
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -12,6 +16,9 @@ pub enum Error {
 
     #[error("could not find a guild with id `{0:?}`")]
     GuildNotFound(GuildId),
+
+    #[error("user '{0}' is already a member")]
+    CannotInviteMember(UserId),
 
     #[error(transparent)]
     ParseActionError(#[from] ParseActionError),
@@ -47,6 +54,7 @@ impl Error {
             Error::InvitePollNotFound(_) => true,
             Error::InvitePollIdInvalid(_, _) => true,
             Error::GuildNotFound(_) => true,
+            Error::CannotInviteMember(_) => true,
             Error::ParseActionError(err) => err.is_client_error(),
             Error::ConfigError(_) => false,
             Error::DatabaseError(_) => false,

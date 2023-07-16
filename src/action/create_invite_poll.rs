@@ -159,10 +159,7 @@ impl<'a> TryFrom<&'a Interaction> for CreateInvitePoll {
             action: ACTION_ID,
             option: USER_ID_OPTION_NAME.into(),
         })?;
-        let duration = duration.ok_or(ParseActionError::MissingOption {
-            action: ACTION_ID,
-            option: USER_ID_OPTION_NAME.into(),
-        })?;
+        let duration = duration.unwrap_or(Duration::from_secs(3 * 24 * 60 * 60)); // 3 days
 
         let guild_id = interaction
             .guild_id

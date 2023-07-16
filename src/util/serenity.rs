@@ -11,6 +11,41 @@ use serenity::{
 };
 use sqlx::Postgres;
 
+pub trait ErrorExt {
+    fn as_http_error(&self) -> Option<&serenity::http::HttpError>;
+
+    fn is_cannot_send_messages_to_this_user_error(&self) -> bool;
+}
+
+impl ErrorExt for serenity::Error {
+    fn as_http_error(&self) -> Option<&serenity::http::HttpError> {
+        match self {
+            serenity::Error::Http(err) => Some(err),
+            _ => None,
+        }
+    }
+
+    fn is_cannot_send_messages_to_this_user_error(&self) -> bool {
+        self.as_http_error()
+            .and_then(|err| err.as_unsuccessful_request())
+            .map(|err| err.error.code == 50007)
+            .unwrap_or(false)
+    }
+}
+
+pub trait HttpErrorExt {
+    fn as_unsuccessful_request(&self) -> Option<&serenity::http::error::ErrorResponse>;
+}
+
+impl HttpErrorExt for serenity::http::HttpError {
+    fn as_unsuccessful_request(&self) -> Option<&serenity::http::error::ErrorResponse> {
+        match self {
+            serenity::prelude::HttpError::UnsuccessfulRequest(err) => Some(err),
+            _ => None,
+        }
+    }
+}
+
 #[async_trait]
 pub trait GuildExt {
     async fn is_member(

@@ -1,15 +1,13 @@
 use std::time::Duration;
 
-use serenity::{
-    model::prelude::UserId,
-    prelude::{Context, HttpError},
-};
+use serenity::{model::prelude::UserId, prelude::Context};
 use sqlx::PgPool;
 use tokio::time::{interval, Interval};
 
 use crate::{
     entities::{Guild, InvitePollOutcome, InvitePollWithVoteCount},
     error::Error,
+    util::serenity::ErrorExt,
     POOL,
 };
 
@@ -126,34 +124,88 @@ impl BackgroundPollHandler {
         );
 
         if outcome == InvitePollOutcome::Allow {
-            // try sending the server invite directly to the user
             let invite = settings
                 .invite_channel_id
                 .create_invite(http, |invite| invite.unique(true).max_uses(1))
                 .await?;
 
-            let pm = poll.invite_poll.invitee.create_dm_channel(http).await?;
-
-            let res = pm.send_message(http, |msg| {
+            'send_message: {
+                // try sending the server invite directly to the user
+                let pm = poll.invite_poll.invitee.create_dm_channel(http).await?;
+                let res = pm.send_message(http, |msg| {
                     msg.content(format!(
-                        "Hello! You have been invited by {} to **{}**!\nAccept the following invite to join them!\n{}",
-                        poll.invite_poll.inviter,
-                        guild.name,
-                        invite.url()
-                    ))
+                            "Hello! You have been invited by {} to **{}**!\nAccept the following invite to join them!\n{}",
+                            poll.invite_poll.inviter,
+                            guild.name,
+                            invite.url()
+                            ))
                 })
                 .await;
 
-            match res {
-                Ok(_) => Ok(()),
-                Err(serenity::Error::Http(err)) if matches!(&*err, HttpError::UnsuccessfulRequest(resp) if resp.error.code == 50007) =>
-                {
-                    // fall back to setting the poll message to the invite url
-                    message = Some(InvitePollMessage::InviteUrl(invite.url()));
-                    Ok(())
+                match res {
+                    Ok(_) => {
+                        break 'send_message;
+                    }
+                    Err(err) if err.is_cannot_send_messages_to_this_user_error() => {
+                        // continue
+                    }
+                    Err(err) => {
+                        return Err(err.into());
+                    }
                 }
-                Err(err) => Err(err),
-            }?;
+
+                // if that fails send the invite to the inviter
+                let pm = poll.invite_poll.inviter.create_dm_channel(http).await?;
+                let res = pm.send_message(http, |msg| {
+                    msg.content(format!(
+                            "Hello! The invite poll you started in **{}** for {} has ended successfully!\nPlease send them the following invite url!\n{}",
+                            guild.name,
+                            poll.invite_poll.invitee,
+                            invite.url()
+                            ))
+                })
+                .await;
+
+                match res {
+                    Ok(_) => {
+                        break 'send_message;
+                    }
+                    Err(err) if err.is_cannot_send_messages_to_this_user_error() => {
+                        // continue
+                    }
+                    Err(err) => {
+                        return Err(err.into());
+                    }
+                }
+
+                // if that fails send it to the server owner
+                let pm = guild.owner_id.create_dm_channel(http).await?;
+                let res = pm.send_message(http, |msg| {
+                    msg.content(format!(
+                            "Hello! The invite poll in **{}** by {} for {} has ended successfully!\nPlease send them the following invite url!\n{}",
+                            guild.name,
+                            poll.invite_poll.inviter,
+                            poll.invite_poll.invitee,
+                            invite.url()
+                            ))
+                })
+                .await;
+
+                match res {
+                    Ok(_) => {
+                        break 'send_message;
+                    }
+                    Err(err) if err.is_cannot_send_messages_to_this_user_error() => {
+                        // continue
+                    }
+                    Err(err) => {
+                        return Err(err.into());
+                    }
+                }
+
+                // if everything fails fall back to putting it in the embed
+                message = Some(InvitePollMessage::InviteUrl(invite.url()));
+            }
         }
 
         poll.invite_poll

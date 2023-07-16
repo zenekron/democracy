@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.3] - 2023-07-16
+
+### Bug Fixes
+
+- Disallow inviting users that are already in the guild
+- Provide a default value for `duration`
+
+### Features
+
+- Change the invite sending strategy
+
 ## [0.1.2] - 2023-07-16
 
 ### Bug Fixes
@@ -11,6 +22,10 @@ All notable changes to this project will be documented in this file.
 ### Features
 
 - Provide user feedback for user-generated errors
+
+### Miscellaneous Tasks
+
+- Release democracy version 0.1.2
 
 ## [0.1.1] - 2023-07-16
 

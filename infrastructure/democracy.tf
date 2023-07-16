@@ -34,6 +34,10 @@ resource "kubernetes_deployment_v1" "democracy" {
     # the bot does not currently support multiple instances running
     replicas = 1
 
+    strategy {
+      type = "Recreate"
+    }
+
     selector {
       match_labels = local.bot_labels
     }

@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.1] - 2023-07-16
+
+### Bug Fixes
+
+- Restrict `/configure` to administrator usage
+
+### Miscellaneous Tasks
+
+- Split providers, variables and outputs in different source files
+
+### Refactor
+
+- Allow `Action::register` to register multiple commands
+
 ## [0.1.0] - 2023-07-10
 
 ### Bug Fixes
@@ -88,6 +102,7 @@ All notable changes to this project will be documented in this file.
 - Create kubernetes deployment
 - Use cargo-release's environment variables
 - Reorder Cargo.toml's fields
+- Release democracy version 0.1.0
 
 ### Refactor
 

@@ -1,5 +1,5 @@
 use serenity::{
-    async_trait, builder::CreateApplicationCommand, model::prelude::Interaction, prelude::Context,
+    async_trait, builder::CreateApplicationCommands, model::prelude::Interaction, prelude::Context,
 };
 
 use crate::error::Error;
@@ -10,7 +10,7 @@ use super::ParseActionError;
 pub trait Action: for<'a> TryFrom<&'a Interaction, Error = ParseActionError> {
     async fn execute(&self, ctx: &Context) -> Result<(), Error>;
 
-    fn register() -> Option<CreateApplicationCommand> {
-        None
+    fn register(commands: &mut CreateApplicationCommands) -> &mut CreateApplicationCommands {
+        commands
     }
 }

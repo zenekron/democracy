@@ -7,21 +7,6 @@ macro_rules! create_actions {
             )+
         }
 
-        impl $name {
-            pub fn register_all(commands: &mut serenity::builder::CreateApplicationCommands) -> &mut serenity::builder::CreateApplicationCommands {
-                $(
-                    if let Some(command) = $var::register() {
-                        commands.create_application_command(move |cmd| {
-                            *cmd = command;
-                            cmd
-                        });
-                    }
-                )+
-
-                commands
-            }
-        }
-
         #[serenity::async_trait]
         impl Action for $name {
             async fn execute(&self, ctx: &serenity::client::Context) -> Result<(), crate::error::Error> {
@@ -32,8 +17,12 @@ macro_rules! create_actions {
                 }
             }
 
-            fn register() -> Option<serenity::builder::CreateApplicationCommand> {
-                std::unimplemented!("use `register_all` instead")
+            fn register(commands: &mut serenity::builder::CreateApplicationCommands) -> &mut serenity::builder::CreateApplicationCommands {
+                $(
+                    $var::register(commands);
+                )+
+
+                commands
             }
         }
 

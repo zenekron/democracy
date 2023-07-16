@@ -31,10 +31,10 @@ impl FromStr for InvitePollId {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let buf = BASE64
             .decode(s)
-            .map_err(|err| Error::InvitePollIdInvalid(s.to_owned(), err.into()))?;
+            .map_err(|err| Error::InvitePollIdInvalid(s.to_owned(), Box::new(err)))?;
 
         let id = Uuid::from_slice(&buf)
-            .map_err(|err| Error::InvitePollIdInvalid(s.to_owned(), err.into()))?;
+            .map_err(|err| Error::InvitePollIdInvalid(s.to_owned(), Box::new(err)))?;
 
         Ok(Self(id))
     }

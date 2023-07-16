@@ -13,7 +13,7 @@ use crate::{
     POOL,
 };
 
-use super::{Action, ParseActionError};
+use super::{Action, ParseActionError, ParseParentMessageError};
 
 const ACTION_ID: &'static str = "democracy.invite-poll-vote";
 pub const POLL_ID_FIELD_NAME: &'static str = "Poll Id";
@@ -79,7 +79,9 @@ impl<'a> TryFrom<&'a Interaction> for SubmitInvitePollVote {
                 .iter()
                 .flat_map(|embed| embed.fields.iter())
                 .find(|field| field.name == POLL_ID_FIELD_NAME)
-                .ok_or(ParseActionError::MissingOption(ACTION_ID, "poll-id"))?;
+                .ok_or(ParseParentMessageError::FieldNotFound {
+                    field: POLL_ID_FIELD_NAME.into(),
+                })?;
 
             let val = field.value.as_str();
             let val = val
@@ -88,27 +90,31 @@ impl<'a> TryFrom<&'a Interaction> for SubmitInvitePollVote {
                 .strip_suffix('`')
                 .unwrap_or(val);
 
-            val.parse::<InvitePollId>().map_err(|err| {
-                ParseActionError::InvalidOptionValue(ACTION_ID, "poll-id".to_string(), err.into())
-            })?
+            val.parse::<InvitePollId>()
+                .map_err(|err| ParseParentMessageError::InvalidField {
+                    field: POLL_ID_FIELD_NAME.into(),
+                    value: val.into(),
+                    source: Box::new(err),
+                })?
         };
 
         let vote = {
-            let vote = interaction
-                .data
-                .custom_id
+            let vote = &interaction.data.custom_id;
+
+            let vote = vote
                 .strip_prefix([ACTION_ID, "."].concat().as_str())
-                .ok_or_else(|| {
-                    ParseActionError::InvalidOptionValue(
-                        ACTION_ID,
-                        "vote".into(),
-                        "id did not match the current action's".into(),
-                    )
+                .ok_or(ParseActionError::InvalidActionId {
+                    action: ACTION_ID,
+                    id: vote.clone(),
+                    source: None,
                 })?;
 
-            vote.parse::<InvitePollVote>().map_err(|err| {
-                ParseActionError::InvalidOptionValue(ACTION_ID, "vote".into(), err.into())
-            })?
+            vote.parse::<InvitePollVote>()
+                .map_err(|err| ParseActionError::InvalidActionId {
+                    action: ACTION_ID,
+                    id: vote.to_string(),
+                    source: Some(Box::new(err)),
+                })?
         };
 
         let user_id = UserId::from(interaction.user.id);

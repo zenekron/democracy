@@ -8,7 +8,7 @@ pub enum Error {
     InvitePollNotFound(InvitePollId),
 
     #[error("value `{0}` is not a valid poll id: {1}")]
-    InvitePollIdInvalid(String, Box<dyn std::error::Error>),
+    InvitePollIdInvalid(String, Box<dyn std::error::Error + Send + Sync>),
 
     #[error("could not find a guild with id `{0:?}`")]
     GuildNotFound(GuildId),
@@ -39,4 +39,39 @@ pub enum Error {
 
     #[error(transparent)]
     UserIdParseError(#[from] UserIdParseError),
+}
+
+impl Error {
+    pub fn is_client_error(&self) -> bool {
+        match self {
+            Error::InvitePollNotFound(_) => true,
+            Error::InvitePollIdInvalid(_, _) => true,
+            Error::GuildNotFound(_) => true,
+            Error::ParseActionError(err) => err.is_client_error(),
+            Error::ConfigError(_) => false,
+            Error::DatabaseError(_) => false,
+            Error::MigrationError(_) => false,
+            Error::SerenityError(_) => false,
+            Error::UserIdParseError(_) => todo!(),
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn is_send<T: Send>() -> bool {
+        true
+    }
+
+    fn is_sync<T: Sync>() -> bool {
+        true
+    }
+
+    #[test]
+    fn test_is_send_and_sync() {
+        assert!(is_send::<Error>());
+        assert!(is_sync::<Error>());
+    }
 }

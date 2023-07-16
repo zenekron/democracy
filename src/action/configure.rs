@@ -148,23 +148,26 @@ impl<'a> TryFrom<&'a Interaction> for Configure {
                     invite_poll_quorum = Some(value);
                 }
                 other => {
-                    return Err(ParseActionError::UnknownOption(ACTION_ID, other.to_owned()));
+                    return Err(ParseActionError::UnknownOption {
+                        action: ACTION_ID,
+                        option: other.to_owned(),
+                    });
                 }
             }
         }
 
-        let invite_channel_id = invite_channel_id.ok_or(ParseActionError::MissingOption(
-            ACTION_ID,
-            INVITE_CHANNEL_ID_OPTION_NAME,
-        ))?;
-        let invite_poll_quorum = invite_poll_quorum.ok_or(ParseActionError::MissingOption(
-            ACTION_ID,
-            INVITE_POLL_QUORUM_OPTION_NAME,
-        ))?;
+        let invite_channel_id = invite_channel_id.ok_or(ParseActionError::MissingOption {
+            action: ACTION_ID,
+            option: INVITE_CHANNEL_ID_OPTION_NAME.into(),
+        })?;
+        let invite_poll_quorum = invite_poll_quorum.ok_or(ParseActionError::MissingOption {
+            action: ACTION_ID,
+            option: INVITE_POLL_QUORUM_OPTION_NAME.into(),
+        })?;
 
         let guild_id = interaction
             .guild_id
-            .ok_or(ParseActionError::InvalidInteractionKind)
+            .ok_or(ParseActionError::NotInAGuild { action: ACTION_ID })
             .map(Into::into)?;
 
         Ok(Self {

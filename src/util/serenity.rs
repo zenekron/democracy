@@ -1,9 +1,54 @@
 use std::{fmt::Display, ops::Deref, str::FromStr};
 
-use serenity::builder::{
-    CreateComponents, CreateEmbed, CreateInteractionResponseData, EditMessage,
+use async_trait::async_trait;
+use serenity::{
+    builder::{
+        CreateComponents, CreateEmbed, CreateInteractionResponse, CreateInteractionResponseData,
+        EditMessage,
+    },
+    http::Http,
+    model::prelude::Interaction,
 };
 use sqlx::Postgres;
+
+#[async_trait]
+pub trait InteractionExt {
+    async fn create_interaction_response<H, F>(&self, http: H, f: F) -> Result<(), serenity::Error>
+    where
+        H: AsRef<Http> + Send + Sync,
+        F: for<'a, 'b> FnOnce(
+                &'a mut CreateInteractionResponse<'b>,
+            ) -> &'a mut CreateInteractionResponse<'b>
+            + Send
+            + Sync;
+}
+
+#[async_trait]
+impl InteractionExt for Interaction {
+    async fn create_interaction_response<H, F>(&self, http: H, f: F) -> Result<(), serenity::Error>
+    where
+        H: AsRef<Http> + Send + Sync,
+        F: for<'a, 'b> FnOnce(
+                &'a mut CreateInteractionResponse<'b>,
+            ) -> &'a mut CreateInteractionResponse<'b>
+            + Send
+            + Sync,
+    {
+        match self {
+            Interaction::Ping(_) => Ok(()),
+            Interaction::ApplicationCommand(interaction) => {
+                interaction.create_interaction_response(http, f).await
+            }
+            Interaction::MessageComponent(interaction) => {
+                interaction.create_interaction_response(http, f).await
+            }
+            Interaction::Autocomplete(_) => Ok(()),
+            Interaction::ModalSubmit(interaction) => {
+                interaction.create_interaction_response(http, f).await
+            }
+        }
+    }
+}
 
 #[derive(Debug, Default)]
 pub struct MessageRenderer {

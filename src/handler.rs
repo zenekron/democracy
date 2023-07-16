@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use serenity::{
     async_trait,
-    model::prelude::{command::Command, interaction::Interaction, Ready},
+    model::prelude::{command::Command, interaction::Interaction, InteractionResponseType, Ready},
     prelude::{Context, EventHandler},
 };
 
@@ -10,6 +10,7 @@ use crate::{
     action::{Action, Actions},
     background_poll_handler::BackgroundPollHandler,
     error::Error,
+    util::serenity::InteractionExt,
 };
 
 pub struct Handler;
@@ -39,8 +40,24 @@ impl EventHandler for Handler {
     async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
         debug!("interaction: {:?}", interaction);
 
-        match self.on_interaction(ctx, interaction).await {
+        match self.on_interaction(ctx.clone(), interaction.clone()).await {
             Ok(()) => {}
+            Err(err) if err.is_client_error() => {
+                let res = interaction
+                    .create_interaction_response(&ctx.http, |resp| {
+                        resp.kind(InteractionResponseType::ChannelMessageWithSource)
+                            .interaction_response_data(|data| {
+                                data.ephemeral(true)
+                                    .content(format!("Could not perform action: {}.", err))
+                            })
+                    })
+                    .await;
+
+                match res {
+                    Ok(()) => {}
+                    Err(err) => error!("{0}: {0:?}", err),
+                }
+            }
             Err(err) => error!("{0}: {0:?}", err),
         }
     }

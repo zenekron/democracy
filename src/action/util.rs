@@ -51,12 +51,12 @@ macro_rules! resolve_option {
         if let Some(CommandDataOptionValue::$kind(val)) = $resolved {
             Ok(val)
         } else {
-            Err(ParseActionError::InvalidOptionKind(
-                $action,
-                $name.into(),
-                std::stringify!($kind),
-                $resolved.clone(),
-            ))
+            Err(ParseActionError::InvalidOptionKind {
+                action: $action,
+                option: $name.into(),
+                kind: std::stringify!($kind),
+                value: $resolved.clone(),
+            })
         }
     }};
 }

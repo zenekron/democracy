@@ -116,35 +116,48 @@ impl<'a> TryFrom<&'a Interaction> for CreateInvitePoll {
                 name @ USER_ID_OPTION_NAME => {
                     let value = resolve_option!(ACTION_ID, &opt.resolved, String, name)?;
                     let value = value.parse::<UserId>().map_err(|err| {
-                        ParseActionError::InvalidOptionValue(ACTION_ID, name.into(), err.into())
+                        ParseActionError::InvalidOptionValue {
+                            action: ACTION_ID,
+                            option: name.into(),
+                            value: value.to_string(),
+                            source: Box::new(err),
+                        }
                     })?;
                     user_id = Some(value);
                 }
                 name @ DURATION_OPTION_NAME => {
                     let value = resolve_option!(ACTION_ID, &opt.resolved, String, name)?;
                     let value = humantime::parse_duration(value).map_err(|err| {
-                        ParseActionError::InvalidOptionValue(ACTION_ID, name.into(), err.into())
+                        ParseActionError::InvalidOptionValue {
+                            action: ACTION_ID,
+                            option: name.into(),
+                            value: value.to_string(),
+                            source: Box::new(err),
+                        }
                     })?;
                     duration = Some(value);
                 }
                 other => {
-                    return Err(ParseActionError::UnknownOption(ACTION_ID, other.to_owned()));
+                    return Err(ParseActionError::UnknownOption {
+                        action: ACTION_ID,
+                        option: other.to_owned(),
+                    });
                 }
             }
         }
 
-        let user_id = user_id.ok_or(ParseActionError::MissingOption(
-            ACTION_ID,
-            USER_ID_OPTION_NAME,
-        ))?;
-        let duration = duration.ok_or(ParseActionError::MissingOption(
-            ACTION_ID,
-            USER_ID_OPTION_NAME,
-        ))?;
+        let user_id = user_id.ok_or(ParseActionError::MissingOption {
+            action: ACTION_ID,
+            option: USER_ID_OPTION_NAME.into(),
+        })?;
+        let duration = duration.ok_or(ParseActionError::MissingOption {
+            action: ACTION_ID,
+            option: USER_ID_OPTION_NAME.into(),
+        })?;
 
         let guild_id = interaction
             .guild_id
-            .ok_or(ParseActionError::InvalidInteractionKind)
+            .ok_or(ParseActionError::NotInAGuild { action: ACTION_ID })
             .map(Into::into)?;
 
         Ok(Self {

@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.0] - 2023-07-30
+
+### Documentation
+
+- Demove outdated documentation
+
+### Features
+
+- Make actions Debug
+- Do not track a poll's creator
+
+### Miscellaneous Tasks
+
+- Configure tracing with the opentelemetry exporter
+
 ## [0.1.3] - 2023-07-16
 
 ### Bug Fixes
@@ -12,6 +27,10 @@ All notable changes to this project will be documented in this file.
 ### Features
 
 - Change the invite sending strategy
+
+### Miscellaneous Tasks
+
+- Release democracy version 0.1.3
 
 ## [0.1.2] - 2023-07-16
 

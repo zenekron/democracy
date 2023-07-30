@@ -1,6 +1,7 @@
 #[macro_export(local_inner_macros)]
 macro_rules! create_actions {
     ($name:ident, $($var:ident),+) => {
+        #[derive(Debug)]
         pub enum $name {
             $(
                 $var($var),

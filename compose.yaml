@@ -8,3 +8,14 @@ services:
       POSTGRES_DB: "democracy"
     ports:
       - "5432:5432/tcp"
+
+  jaeger:
+    image: "jaegertracing/all-in-one:1.47"
+    restart: "unless-stopped"
+    environment:
+      COLLECTOR_OTLP_ENABLED: true
+    ports:
+      - "16686:16686/tcp" # WebUI
+      - "5778:5778/tcp" # Agent Configs
+      - "4317:4317/tcp" # OpenTelemetry Protocol (OTLP) over gRPC
+      - "4318:4318/tcp" # OpenTelemetry Protocol (OTLP) over HTTP

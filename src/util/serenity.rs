@@ -4,7 +4,7 @@ use async_trait::async_trait;
 use serenity::{
     builder::{
         CreateComponents, CreateEmbed, CreateInteractionResponse, CreateInteractionResponseData,
-        EditMessage,
+        CreateMessage, EditMessage,
     },
     http::{CacheHttp, Http, StatusCode},
     model::prelude::{Interaction, PartialGuild},
@@ -133,6 +133,18 @@ impl MessageRenderer {
         self,
         data: &'a mut CreateInteractionResponseData<'b>,
     ) -> &'a mut CreateInteractionResponseData<'b> {
+        if let Some(components) = self.components {
+            data.set_components(components);
+        }
+        data.set_embeds(self.embeds);
+
+        data
+    }
+
+    pub fn render_create_message<'a, 'b>(
+        self,
+        data: &'a mut CreateMessage<'b>,
+    ) -> &'a mut CreateMessage<'b> {
         if let Some(components) = self.components {
             data.set_components(components);
         }

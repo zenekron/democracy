@@ -63,21 +63,27 @@ impl Action for CreateInvitePoll {
         };
 
         let renderer = invite_poll.create_renderer(ctx.clone()).await?;
-        self.interaction
-            .create_interaction_response(&ctx.http, |response| {
-                response
-                    .kind(InteractionResponseType::ChannelMessageWithSource)
-                    .interaction_response_data(|data| {
-                        renderer.render_create_interaction_response_data(data)
-                    })
-            })
+        let msg = self
+            .interaction
+            .channel_id
+            .send_message(&ctx.http, move |data| renderer.render_create_message(data))
             .await?;
 
-        // embed `message_id` into the `InvitePoll`
-        let message = self.interaction.get_interaction_response(&ctx.http).await?;
         invite_poll
             .invite_poll
-            .update_message(&mut *transaction, &message)
+            .update_message(&mut *transaction, &msg)
+            .await?;
+
+        self.interaction
+            .create_interaction_response(&ctx.http, |res| {
+                res.kind(InteractionResponseType::ChannelMessageWithSource)
+                    .interaction_response_data(|data| {
+                        data.ephemeral(true).content(format!(
+                            "https://discord.com/channels/{}/{}/{}",
+                            self.guild_id.0, msg.channel_id, msg.id
+                        ))
+                    })
+            })
             .await?;
 
         transaction.commit().await?;

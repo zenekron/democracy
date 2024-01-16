@@ -1,6 +1,6 @@
 use serenity::{
-    builder::{CreateComponents, CreateEmbed},
-    model::prelude::component::ButtonStyle,
+    all::ButtonStyle,
+    builder::{CreateActionRow, CreateButton, CreateEmbed},
     prelude::Context,
 };
 use sqlx::{Executor, Postgres};
@@ -67,7 +67,7 @@ impl InvitePollWithVoteCount {
         let embeds = vec![{
             let mut embed = CreateEmbed::default();
 
-            embed
+            embed = embed
                 .color(match self.invite_poll.outcome {
                     Some(InvitePollOutcome::Allow) => colors::DISCORD_GREEN,
                     Some(InvitePollOutcome::Deny) => colors::DISCORD_RED,
@@ -77,7 +77,7 @@ impl InvitePollWithVoteCount {
                 .thumbnail(user.face());
 
             // row
-            embed
+            embed = embed
                 .field(
                     POLL_ID_FIELD_NAME,
                     format!("`{}`", self.invite_poll.id),
@@ -95,7 +95,7 @@ impl InvitePollWithVoteCount {
                 );
 
             // row
-            embed
+            embed = embed
                 .field(
                     "Created At",
                     DiscordTimestamp::new(
@@ -122,7 +122,7 @@ impl InvitePollWithVoteCount {
                 );
 
             // row
-            embed.field(
+            embed = embed.field(
                 "Votes",
                 {
                     let mut bar = ProgressBar::builder();
@@ -144,7 +144,7 @@ impl InvitePollWithVoteCount {
             // row
             {
                 if let Some(outcome) = self.invite_poll.outcome {
-                    embed.field(
+                    embed = embed.field(
                         "Outcome",
                         match outcome {
                             InvitePollOutcome::Allow => {
@@ -155,11 +155,11 @@ impl InvitePollWithVoteCount {
                         true,
                     );
                 } else {
-                    embed.field("", "", true);
+                    embed = embed.field("", "", true);
                 }
 
                 if let Some(message) = self.invite_poll.message.as_ref() {
-                    embed.field(
+                    embed = embed.field(
                         match self.invite_poll.outcome {
                             Some(InvitePollOutcome::Allow) => "Invite",
                             Some(InvitePollOutcome::Deny) => "Reason",
@@ -169,7 +169,7 @@ impl InvitePollWithVoteCount {
                         true,
                     );
                 } else {
-                    embed.field("", "", true);
+                    embed = embed.field("", "", true);
                 }
             }
 
@@ -177,28 +177,21 @@ impl InvitePollWithVoteCount {
         }];
 
         let components = match self.invite_poll.outcome {
-            Some(_) => CreateComponents::default(),
-            None => {
-                let mut components = CreateComponents::default();
-                components.create_action_row(|row| {
-                    row.create_button(|btn| {
-                        btn.custom_id("democracy.invite-poll-vote.yes")
-                            .label("Yes")
-                            .style(ButtonStyle::Success)
-                    })
-                    .create_button(|btn| {
-                        btn.custom_id("democracy.invite-poll-vote.no")
-                            .label("No")
-                            .style(ButtonStyle::Danger)
-                    })
-                });
-                components
-            }
+            Some(_) => Vec::new(),
+            None => vec![CreateActionRow::Buttons(vec![
+                CreateButton::new("democracy.invite-poll-vote.yes")
+                    .label("Yes")
+                    .style(ButtonStyle::Success),
+                CreateButton::new("democracy.invite-poll-vote.no")
+                    .label("No")
+                    .style(ButtonStyle::Danger),
+            ])],
         };
 
         let mut res = MessageRenderer::default();
         res.set_components(components);
         res.set_embeds(embeds);
+
         Ok(res)
     }
 }

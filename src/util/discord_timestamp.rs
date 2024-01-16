@@ -48,3 +48,9 @@ impl Display for DiscordTimestamp {
         )
     }
 }
+
+impl Into<String> for DiscordTimestamp {
+    fn into(self) -> String {
+        self.to_string()
+    }
+}

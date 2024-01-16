@@ -3,7 +3,7 @@ use std::{fmt::Display, ops::Deref, str::FromStr};
 use async_trait::async_trait;
 use serenity::{
     builder::{
-        CreateComponents, CreateEmbed, CreateInteractionResponse, CreateInteractionResponseData,
+        CreateActionRow, CreateEmbed, CreateInteractionResponse, CreateInteractionResponseMessage,
         CreateMessage, EditMessage,
     },
     http::{CacheHttp, Http, StatusCode},
@@ -34,11 +34,11 @@ impl ErrorExt for serenity::Error {
 }
 
 pub trait HttpErrorExt {
-    fn as_unsuccessful_request(&self) -> Option<&serenity::http::error::ErrorResponse>;
+    fn as_unsuccessful_request(&self) -> Option<&serenity::http::ErrorResponse>;
 }
 
 impl HttpErrorExt for serenity::http::HttpError {
-    fn as_unsuccessful_request(&self) -> Option<&serenity::http::error::ErrorResponse> {
+    fn as_unsuccessful_request(&self) -> Option<&serenity::http::ErrorResponse> {
         match self {
             serenity::prelude::HttpError::UnsuccessfulRequest(err) => Some(err),
             _ => None,
@@ -75,51 +75,51 @@ impl GuildExt for PartialGuild {
 
 #[async_trait]
 pub trait InteractionExt {
-    async fn create_interaction_response<H, F>(&self, http: H, f: F) -> Result<(), serenity::Error>
+    async fn create_interaction_response<H>(
+        &self,
+        http: H,
+        response: CreateInteractionResponse,
+    ) -> Result<(), serenity::Error>
     where
-        H: AsRef<Http> + Send + Sync,
-        F: for<'a, 'b> FnOnce(
-                &'a mut CreateInteractionResponse<'b>,
-            ) -> &'a mut CreateInteractionResponse<'b>
-            + Send
-            + Sync;
+        H: AsRef<Http> + Send + Sync;
 }
 
 #[async_trait]
 impl InteractionExt for Interaction {
-    async fn create_interaction_response<H, F>(&self, http: H, f: F) -> Result<(), serenity::Error>
+    async fn create_interaction_response<H>(
+        &self,
+        http: H,
+        response: CreateInteractionResponse,
+    ) -> Result<(), serenity::Error>
     where
         H: AsRef<Http> + Send + Sync,
-        F: for<'a, 'b> FnOnce(
-                &'a mut CreateInteractionResponse<'b>,
-            ) -> &'a mut CreateInteractionResponse<'b>
-            + Send
-            + Sync,
     {
         match self {
             Interaction::Ping(_) => Ok(()),
-            Interaction::ApplicationCommand(interaction) => {
-                interaction.create_interaction_response(http, f).await
-            }
-            Interaction::MessageComponent(interaction) => {
-                interaction.create_interaction_response(http, f).await
+            Interaction::Command(interaction) => {
+                interaction.create_response(http.as_ref(), response).await
             }
             Interaction::Autocomplete(_) => Ok(()),
-            Interaction::ModalSubmit(interaction) => {
-                interaction.create_interaction_response(http, f).await
+            Interaction::Component(interaction) => {
+                interaction.create_response(http.as_ref(), response).await
             }
+
+            Interaction::Modal(interaction) => {
+                interaction.create_response(http.as_ref(), response).await
+            }
+            _ => Ok(()),
         }
     }
 }
 
 #[derive(Debug, Default)]
 pub struct MessageRenderer {
-    components: Option<CreateComponents>,
+    components: Option<Vec<CreateActionRow>>,
     embeds: Vec<CreateEmbed>,
 }
 
 impl MessageRenderer {
-    pub fn set_components(&mut self, components: CreateComponents) -> &mut Self {
+    pub fn set_components(&mut self, components: Vec<CreateActionRow>) -> &mut Self {
         self.components = Some(components);
         self
     }
@@ -129,40 +129,28 @@ impl MessageRenderer {
         self
     }
 
-    pub fn render_create_interaction_response_data<'a, 'b>(
+    pub fn render_create_interaction_response_data<'a>(
         self,
-        data: &'a mut CreateInteractionResponseData<'b>,
-    ) -> &'a mut CreateInteractionResponseData<'b> {
+        mut data: CreateInteractionResponseMessage,
+    ) -> CreateInteractionResponseMessage {
         if let Some(components) = self.components {
-            data.set_components(components);
+            data = data.components(components);
         }
-        data.set_embeds(self.embeds);
-
-        data
+        data.embeds(self.embeds)
     }
 
-    pub fn render_create_message<'a, 'b>(
-        self,
-        data: &'a mut CreateMessage<'b>,
-    ) -> &'a mut CreateMessage<'b> {
+    pub fn render_create_message<'a>(self, mut data: CreateMessage) -> CreateMessage {
         if let Some(components) = self.components {
-            data.set_components(components);
+            data = data.components(components);
         }
-        data.set_embeds(self.embeds);
-
-        data
+        data.embeds(self.embeds)
     }
 
-    pub fn render_edit_message<'a, 'b>(
-        self,
-        data: &'a mut EditMessage<'b>,
-    ) -> &'a mut EditMessage<'b> {
+    pub fn render_edit_message<'a>(self, mut data: EditMessage) -> EditMessage {
         if let Some(components) = self.components {
-            data.set_components(components);
+            data = data.components(components);
         }
-        data.set_embeds(self.embeds);
-
-        data
+        data.embeds(self.embeds)
     }
 }
 
@@ -223,7 +211,7 @@ macro_rules! wrap_discord_id {
                 &self,
                 buf: &mut <Postgres as sqlx::database::HasArguments<'q>>::ArgumentBuffer,
             ) -> sqlx::encode::IsNull {
-                buf.extend(self.0.as_u64().to_string().as_bytes());
+                buf.extend(self.0.get().to_string().as_bytes());
                 sqlx::encode::IsNull::No
             }
         }
@@ -237,6 +225,6 @@ wrap_discord_id!(MessageId);
 
 impl Display for UserId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "<@{}>", self.0.as_u64())
+        write!(f, "<@{}>", self.0.get())
     }
 }

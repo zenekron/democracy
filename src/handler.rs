@@ -1,8 +1,10 @@
 use std::time::Duration;
 
 use serenity::{
+    all::{Command, Interaction},
     async_trait,
-    model::prelude::{command::Command, interaction::Interaction, InteractionResponseType, Ready},
+    builder::{CreateInteractionResponse, CreateInteractionResponseMessage},
+    model::prelude::Ready,
     prelude::{Context, EventHandler},
 };
 
@@ -17,7 +19,7 @@ pub struct Handler;
 
 impl Handler {
     async fn on_ready(&self, ctx: Context, _ready: &Ready) -> Result<(), Error> {
-        Command::set_global_application_commands(&ctx.http, Actions::register).await?;
+        Command::set_global_commands(&ctx.http, Actions::register()).await?;
 
         BackgroundPollHandler::new(ctx, Duration::from_secs(10))
             .start()
@@ -44,12 +46,12 @@ impl EventHandler for Handler {
             Ok(()) => {}
             Err(err) if err.is_client_error() => {
                 let res = interaction
-                    .create_interaction_response(&ctx.http, |resp| {
-                        resp.kind(InteractionResponseType::ChannelMessageWithSource)
-                            .interaction_response_data(|data| {
-                                data.ephemeral(true)
-                                    .content(format!("Could not perform action: {}.", err))
-                            })
+                    .create_interaction_response(&ctx.http, {
+                        CreateInteractionResponse::Message(
+                            CreateInteractionResponseMessage::default()
+                                .ephemeral(true)
+                                .content(format!("Could not perform action: {}.", err)),
+                        )
                     })
                     .await;
 

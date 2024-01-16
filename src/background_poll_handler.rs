@@ -1,6 +1,10 @@
 use std::time::Duration;
 
-use serenity::{model::prelude::UserId, prelude::Context};
+use serenity::{
+    builder::{CreateInvite, CreateMessage, EditMessage},
+    model::prelude::UserId,
+    prelude::Context,
+};
 use sqlx::PgPool;
 use tokio::time::{interval, Interval};
 
@@ -126,20 +130,19 @@ impl BackgroundPollHandler {
         if outcome == InvitePollOutcome::Allow {
             let invite = settings
                 .invite_channel_id
-                .create_invite(http, |invite| invite.unique(true).max_uses(1))
+                .create_invite(http, CreateInvite::default().unique(true).max_uses(1))
                 .await?;
 
             'send_message: {
                 // try sending the server invite directly to the user
                 let pm = poll.invite_poll.invitee.create_dm_channel(http).await?;
-                let res = pm.send_message(http, |msg| {
-                    msg.content(format!(
-                            "Hello! You have been invited by {} to **{}**!\nAccept the following invite to join them!\n{}",
+                let res = pm.send_message(http,
+                      CreateMessage::default() .content(format!( "Hello! You have been invited by {} to **{}**!\nAccept the following invite to join them!\n{}",
                             poll.invite_poll.inviter,
                             guild.name,
                             invite.url()
                             ))
-                })
+                )
                 .await;
 
                 match res {
@@ -156,14 +159,13 @@ impl BackgroundPollHandler {
 
                 // if that fails send the invite to the inviter
                 let pm = poll.invite_poll.inviter.create_dm_channel(http).await?;
-                let res = pm.send_message(http, |msg| {
-                    msg.content(format!(
+                let res = pm.send_message(http,                     CreateMessage::default().content(format!(
                             "Hello! The invite poll you started in **{}** for {} has ended successfully!\nPlease send them the following invite url!\n{}",
                             guild.name,
                             poll.invite_poll.invitee,
                             invite.url()
                             ))
-                })
+                                         )
                 .await;
 
                 match res {
@@ -180,15 +182,14 @@ impl BackgroundPollHandler {
 
                 // if that fails send it to the server owner
                 let pm = guild.owner_id.create_dm_channel(http).await?;
-                let res = pm.send_message(http, |msg| {
-                    msg.content(format!(
+                let res = pm.send_message(http,                     CreateMessage::default().content(format!(
                             "Hello! The invite poll in **{}** by {} for {} has ended successfully!\nPlease send them the following invite url!\n{}",
                             guild.name,
                             poll.invite_poll.inviter,
                             poll.invite_poll.invitee,
                             invite.url()
                             ))
-                })
+                                         )
                 .await;
 
                 match res {
@@ -215,8 +216,9 @@ impl BackgroundPollHandler {
         match (&poll.invite_poll.channel_id, &poll.invite_poll.message_id) {
             (Some(channel_id), Some(message_id)) => {
                 let renderer = poll.create_renderer(self.ctx.clone()).await?;
+
                 channel_id
-                    .edit_message(http, message_id, |edit| renderer.render_edit_message(edit))
+                    .edit_message(http, message_id, renderer.render_edit_message(EditMessage::default()))
                     .await?;
             }
             _ => error!(

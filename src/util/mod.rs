@@ -7,7 +7,7 @@ pub mod serenity;
 pub mod colors {
     #![allow(dead_code)]
 
-    use serenity::utils::Color;
+    use serenity::model::Color;
 
     // https://discord.com/branding
     pub static DISCORD_BLURPLE: Color = Color::new(0x5865F2);

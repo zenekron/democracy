@@ -18,19 +18,21 @@ macro_rules! create_actions {
                 }
             }
 
-            fn register(commands: &mut serenity::builder::CreateApplicationCommands) -> &mut serenity::builder::CreateApplicationCommands {
+            fn register() -> Vec<serenity::all::CreateCommand> {
+                let mut res = Vec::<_>::new();
+
                 $(
-                    $var::register(commands);
+                    res.append(&mut $var::register());
                 )+
 
-                commands
+                res
             }
         }
 
-        impl<'a> std::convert::TryFrom<&'a serenity::model::application::interaction::Interaction> for $name {
+        impl<'a> std::convert::TryFrom<&'a serenity::model::prelude::Interaction> for $name {
             type Error = crate::action::ParseActionError;
 
-            fn try_from(value: &'a serenity::model::application::interaction::Interaction) -> Result<Self, Self::Error> {
+            fn try_from(value: &'a serenity::model::prelude::Interaction) -> Result<Self, Self::Error> {
                 $(
                     let res = $var::try_from(value);
                     if !std::matches!(res, Err(ParseActionError::MismatchedAction)) {
@@ -47,9 +49,9 @@ macro_rules! create_actions {
 #[macro_export(local_inner_macros)]
 macro_rules! resolve_option {
     ($action:expr, $resolved:expr, $kind:ident, $name:expr) => {{
-        use serenity::model::prelude::application_command::CommandDataOptionValue;
+        use serenity::all::CommandDataOptionValue;
 
-        if let Some(CommandDataOptionValue::$kind(val)) = $resolved {
+        if let CommandDataOptionValue::$kind(val) = $resolved {
             Ok(val)
         } else {
             Err(ParseActionError::InvalidOptionKind {

@@ -1,9 +1,6 @@
 use serenity::{
-    async_trait,
-    model::prelude::{
-        message_component::MessageComponentInteraction, Interaction, InteractionResponseType,
-    },
-    prelude::Context,
+    all::ComponentInteraction, async_trait, builder::CreateInteractionResponseMessage,
+    model::prelude::Interaction, prelude::Context,
 };
 
 use crate::{
@@ -20,7 +17,7 @@ pub const POLL_ID_FIELD_NAME: &'static str = "Poll Id";
 
 #[derive(Debug)]
 pub struct SubmitInvitePollVote {
-    interaction: MessageComponentInteraction,
+    interaction: ComponentInteraction,
     invite_poll_id: InvitePollId,
     /// Submitter's Id
     user_id: UserId,
@@ -49,12 +46,14 @@ impl Action for SubmitInvitePollVote {
         // re-render message
         let renderer = invite_poll.create_renderer(ctx.clone()).await?;
         self.interaction
-            .create_interaction_response(&ctx.http, |resp| {
-                resp.kind(InteractionResponseType::UpdateMessage)
-                    .interaction_response_data(|data| {
-                        renderer.render_create_interaction_response_data(data)
-                    })
-            })
+            .create_response(
+                &ctx.http,
+                serenity::builder::CreateInteractionResponse::UpdateMessage(
+                    renderer.render_create_interaction_response_data(
+                        CreateInteractionResponseMessage::default(),
+                    ),
+                ),
+            )
             .await?;
 
         Ok(())

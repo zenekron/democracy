@@ -1,4 +1,4 @@
-use serenity::model::prelude::application_command::CommandDataOptionValue;
+use serenity::all::CommandDataOptionValue;
 
 #[derive(Debug, thiserror::Error)]
 pub enum ParseActionError {
@@ -45,7 +45,7 @@ pub enum ParseActionError {
         action: &'static str,
         option: String,
         kind: &'static str,
-        value: Option<CommandDataOptionValue>,
+        value: CommandDataOptionValue,
     },
 
     #[error("invalid value '{value}' for '{option}': {source}")]

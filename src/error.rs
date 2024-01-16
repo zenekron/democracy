@@ -1,5 +1,3 @@
-use serenity::model::prelude::UserIdParseError;
-
 use crate::{
     action::ParseActionError,
     entities::InvitePollId,
@@ -43,9 +41,6 @@ pub enum Error {
     //
     #[error(transparent)]
     SerenityError(#[from] serenity::Error),
-
-    #[error(transparent)]
-    UserIdParseError(#[from] UserIdParseError),
 }
 
 impl Error {
@@ -60,7 +55,6 @@ impl Error {
             Error::DatabaseError(_) => false,
             Error::MigrationError(_) => false,
             Error::SerenityError(_) => false,
-            Error::UserIdParseError(_) => todo!(),
         }
     }
 }

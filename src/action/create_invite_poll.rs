@@ -1,12 +1,13 @@
 use std::time::Duration;
 
 use serenity::{
+    all::{CommandInteraction, CommandOptionType},
     async_trait,
-    builder::CreateApplicationCommands,
-    model::{
-        application::interaction::application_command::ApplicationCommandInteraction,
-        prelude::{command::CommandOptionType, Interaction, InteractionResponseType},
+    builder::{
+        CreateCommand, CreateCommandOption, CreateInteractionResponse,
+        CreateInteractionResponseMessage, CreateMessage,
     },
+    model::prelude::Interaction,
     prelude::Context,
 };
 
@@ -26,7 +27,7 @@ const DURATION_OPTION_NAME: &'static str = "duration";
 
 #[derive(Debug)]
 pub struct CreateInvitePoll {
-    interaction: ApplicationCommandInteraction,
+    interaction: CommandInteraction,
     guild_id: GuildId,
     inviter: UserId,
     invitee: UserId,
@@ -66,7 +67,10 @@ impl Action for CreateInvitePoll {
         let msg = self
             .interaction
             .channel_id
-            .send_message(&ctx.http, move |data| renderer.render_create_message(data))
+            .send_message(
+                &ctx.http,
+                renderer.render_create_message(CreateMessage::default()),
+            )
             .await?;
 
         invite_poll
@@ -75,15 +79,19 @@ impl Action for CreateInvitePoll {
             .await?;
 
         self.interaction
-            .create_interaction_response(&ctx.http, |res| {
-                res.kind(InteractionResponseType::ChannelMessageWithSource)
-                    .interaction_response_data(|data| {
-                        data.ephemeral(true).content(format!(
+            .create_response(
+                &ctx.http,
+                CreateInteractionResponse::Message(
+                    CreateInteractionResponseMessage::default()
+                        .ephemeral(true)
+                        .content(format!(
                             "https://discord.com/channels/{}/{}/{}",
-                            self.guild_id.0, msg.channel_id, msg.id
-                        ))
-                    })
-            })
+                            self.guild_id.get(),
+                            msg.channel_id,
+                            msg.id
+                        )),
+                ),
+            )
             .await?;
 
         transaction.commit().await?;
@@ -91,23 +99,22 @@ impl Action for CreateInvitePoll {
         Ok(())
     }
 
-    fn register(commands: &mut CreateApplicationCommands) -> &mut CreateApplicationCommands {
-        commands.create_application_command(|command| {
-            command
-                .name(ACTION_ID)
-                .description("Creates a petition to invite a new user")
-                .create_option(|opt| {
-                    opt.name(USER_ID_OPTION_NAME)
-                        .kind(CommandOptionType::String)
-                        .description("The ID of the user to invite")
-                        .required(true)
-                })
-                .create_option(|opt| {
-                    opt.name(DURATION_OPTION_NAME)
-                        .kind(CommandOptionType::String)
-                        .description("Duration of the poll")
-                })
-        })
+    fn register() -> Vec<CreateCommand> {
+        vec![CreateCommand::new(ACTION_ID)
+            .description("Creates a petition to invite a new user")
+            .add_option(
+                CreateCommandOption::new(
+                    CommandOptionType::String,
+                    USER_ID_OPTION_NAME,
+                    "The ID of the user to invite",
+                )
+                .required(true),
+            )
+            .add_option(CreateCommandOption::new(
+                CommandOptionType::String,
+                DURATION_OPTION_NAME,
+                "Duration of the poll",
+            ))]
     }
 }
 
@@ -116,7 +123,7 @@ impl<'a> TryFrom<&'a Interaction> for CreateInvitePoll {
 
     fn try_from(value: &'a Interaction) -> Result<Self, Self::Error> {
         let interaction = value
-            .as_application_command()
+            .as_command()
             .ok_or(ParseActionError::MismatchedAction)?;
         if interaction.data.name != ACTION_ID {
             return Err(ParseActionError::MismatchedAction);
@@ -129,7 +136,7 @@ impl<'a> TryFrom<&'a Interaction> for CreateInvitePoll {
         for opt in &interaction.data.options {
             match opt.name.as_str() {
                 name @ USER_ID_OPTION_NAME => {
-                    let value = resolve_option!(ACTION_ID, &opt.resolved, String, name)?;
+                    let value = resolve_option!(ACTION_ID, &opt.value, String, name)?;
                     let value = value.parse::<UserId>().map_err(|err| {
                         ParseActionError::InvalidOptionValue {
                             action: ACTION_ID,
@@ -141,7 +148,7 @@ impl<'a> TryFrom<&'a Interaction> for CreateInvitePoll {
                     user_id = Some(value);
                 }
                 name @ DURATION_OPTION_NAME => {
-                    let value = resolve_option!(ACTION_ID, &opt.resolved, String, name)?;
+                    let value = resolve_option!(ACTION_ID, &opt.value, String, name)?;
                     let value = humantime::parse_duration(value).map_err(|err| {
                         ParseActionError::InvalidOptionValue {
                             action: ACTION_ID,

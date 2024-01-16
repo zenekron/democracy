@@ -1,5 +1,5 @@
 use serenity::{
-    async_trait, builder::CreateApplicationCommands, model::prelude::Interaction, prelude::Context,
+    async_trait, builder::CreateCommand, model::prelude::Interaction, prelude::Context,
 };
 
 use crate::error::Error;
@@ -12,7 +12,7 @@ pub trait Action:
 {
     async fn execute(&self, ctx: &Context) -> Result<(), Error>;
 
-    fn register(commands: &mut CreateApplicationCommands) -> &mut CreateApplicationCommands {
-        commands
+    fn register() -> Vec<CreateCommand> {
+        vec![]
     }
 }

@@ -1,10 +1,11 @@
 use serenity::{
+    all::{CommandInteraction, CommandOptionType},
     async_trait,
-    builder::CreateApplicationCommands,
-    model::prelude::{
-        application_command::ApplicationCommandInteraction, command::CommandOptionType, Channel,
-        Interaction, InteractionResponseType,
+    builder::{
+        CreateCommand, CreateCommandOption, CreateEmbed, CreateInteractionResponse,
+        CreateInteractionResponseMessage,
     },
+    model::prelude::{Channel, Interaction},
     prelude::Context,
 };
 
@@ -27,7 +28,7 @@ const INVITE_POLL_QUORUM_OPTION_NAME: &'static str = "invite-poll-quorum";
 
 #[derive(Debug)]
 pub struct Configure {
-    interaction: ApplicationCommandInteraction,
+    interaction: CommandInteraction,
     guild_id: GuildId,
     invite_channel_id: ChannelId,
     invite_poll_quorum: f32,
@@ -52,34 +53,32 @@ impl Action for Configure {
         let invite_channel = guild.invite_channel_id.to_channel(&ctx.http).await?;
 
         self.interaction
-            .create_interaction_response(&ctx.http, |response| {
-                response
-                    .kind(InteractionResponseType::ChannelMessageWithSource)
-                    .interaction_response_data(|data| {
-                        data //
-                            .ephemeral(true)
-                            .embed(|embed| {
-                                embed
-                                    .title("Settings")
-                                    .color(colors::DISCORD_BLURPLE)
-                                    .field(
-                                        "Invite Channel",
-                                        match invite_channel {
-                                            Channel::Guild(ch) => ch.name,
-                                            Channel::Private(_) => "private".to_owned(),
-                                            Channel::Category(ch) => ch.name,
-                                            _ => "unknown".to_owned(),
-                                        },
-                                        true,
-                                    )
-                                    .field(
-                                        "Required Votes",
-                                        format!("{:.0}%", guild.invite_poll_quorum * 100.0),
-                                        true,
-                                    )
-                            })
-                    })
-            })
+            .create_response(
+                &ctx.http,
+                CreateInteractionResponse::Message(
+                    CreateInteractionResponseMessage::default()
+                        .ephemeral(true)
+                        .add_embed(
+                            CreateEmbed::default()
+                                .title("Settings")
+                                .color(colors::DISCORD_BLURPLE)
+                                .field(
+                                    "Invite Channel",
+                                    match invite_channel {
+                                        Channel::Guild(ch) => ch.name,
+                                        Channel::Private(_) => "private".to_owned(),
+                                        _ => "unknown".to_owned(),
+                                    },
+                                    true,
+                                )
+                                .field(
+                                    "Required Votes",
+                                    format!("{:.0}%", guild.invite_poll_quorum * 100.0),
+                                    true,
+                                ),
+                        ),
+                ),
+            )
             .await?;
 
         transaction.commit().await?;
@@ -87,26 +86,27 @@ impl Action for Configure {
         Ok(())
     }
 
-    fn register(commands: &mut CreateApplicationCommands) -> &mut CreateApplicationCommands {
-        commands.create_application_command(|command| {
-            command
-                .name(ACTION_ID)
-                .description("Configures the bot for the current guild")
-                .create_option(|opt| {
-                    opt.name(INVITE_CHANNEL_ID_OPTION_NAME)
-                        .kind(CommandOptionType::Channel)
-                        .description("Which channels users should be invited to")
-                        .required(true)
-                })
-                .create_option(|opt| {
-                    opt.name(INVITE_POLL_QUORUM_OPTION_NAME)
-                        .kind(CommandOptionType::Integer)
-                        .description("The minimum amount of votes required")
-                        .min_int_value(0)
-                        .max_int_value(100)
-                        .required(true)
-                })
-        })
+    fn register() -> Vec<CreateCommand> {
+        vec![CreateCommand::new(ACTION_ID)
+            .description("Configures the bot for the current guild")
+            .add_option(
+                CreateCommandOption::new(
+                    CommandOptionType::Channel,
+                    INVITE_CHANNEL_ID_OPTION_NAME,
+                    "Which channels users should be invited to",
+                )
+                .required(true),
+            )
+            .add_option(
+                CreateCommandOption::new(
+                    CommandOptionType::Integer,
+                    INVITE_POLL_QUORUM_OPTION_NAME,
+                    "The minimum amount of votes required",
+                )
+                .min_int_value(0)
+                .max_int_value(100)
+                .required(true),
+            )]
     }
 }
 
@@ -115,7 +115,7 @@ impl<'a> TryFrom<&'a Interaction> for Configure {
 
     fn try_from(value: &'a Interaction) -> Result<Self, Self::Error> {
         let interaction = value
-            .as_application_command()
+            .as_command()
             .ok_or(ParseActionError::MismatchedAction)?;
         if interaction.data.name != ACTION_ID {
             return Err(ParseActionError::MismatchedAction);
@@ -139,11 +139,11 @@ impl<'a> TryFrom<&'a Interaction> for Configure {
         for opt in &interaction.data.options {
             match opt.name.as_str() {
                 name @ INVITE_CHANNEL_ID_OPTION_NAME => {
-                    let value = resolve_option!(ACTION_ID, &opt.resolved, Channel, name)?;
-                    invite_channel_id = Some(value.id.into());
+                    let value = resolve_option!(ACTION_ID, &opt.value, Channel, name)?;
+                    invite_channel_id = Some((*value).into());
                 }
                 name @ INVITE_POLL_QUORUM_OPTION_NAME => {
-                    let value = resolve_option!(ACTION_ID, &opt.resolved, Integer, name)?;
+                    let value = resolve_option!(ACTION_ID, &opt.value, Integer, name)?;
                     let value = ((*value).clamp(0, 100) as f32) / 100.0;
                     invite_poll_quorum = Some(value);
                 }

@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.1] - 2024-02-21
+
+### Miscellaneous Tasks
+
+- Add .envrc to version control
+- Configure variable "DEMOCRACY_REGISTRY" to configure generated docker tags
+- Bump rust to version 1.76
+
+### Refactor
+
+- Upgrade serenity to version 0.12
+
 ## [0.2.0] - 2023-07-30
 
 ### Documentation
@@ -16,6 +28,7 @@ All notable changes to this project will be documented in this file.
 ### Miscellaneous Tasks
 
 - Configure tracing with the opentelemetry exporter
+- Release democracy version 0.2.0
 
 ## [0.1.3] - 2023-07-16
 

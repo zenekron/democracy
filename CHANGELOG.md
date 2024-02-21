@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.2] - 2024-02-21
+
+### Bug Fixes
+
+- Use a more recent debian version
+
 ## [0.2.1] - 2024-02-21
 
 ### Miscellaneous Tasks
@@ -9,6 +15,7 @@ All notable changes to this project will be documented in this file.
 - Add .envrc to version control
 - Configure variable "DEMOCRACY_REGISTRY" to configure generated docker tags
 - Bump rust to version 1.76
+- Release democracy version 0.2.1
 
 ### Refactor
 

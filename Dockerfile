@@ -3,7 +3,7 @@
 ################################################################################
 
 # https://hub.docker.com/_/rust
-FROM rust:1.70 as builder
+FROM rust:1.76 as builder
 
 WORKDIR /data
 

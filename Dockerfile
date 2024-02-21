@@ -17,7 +17,7 @@ RUN cargo install --path .
 # runtime image
 ################################################################################
 
-FROM debian:bullseye-slim
+FROM debian:bookworm-slim
 
 WORKDIR /data
 
